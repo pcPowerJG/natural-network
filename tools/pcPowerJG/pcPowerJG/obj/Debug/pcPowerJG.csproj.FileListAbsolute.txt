@@ -1,0 +1,9 @@
+C:\tools\pcPowerJG\pcPowerJG\bin\Debug\pcPowerJG.exe.config
+C:\tools\pcPowerJG\pcPowerJG\bin\Debug\pcPowerJG.exe
+C:\tools\pcPowerJG\pcPowerJG\bin\Debug\pcPowerJG.pdb
+C:\tools\pcPowerJG\pcPowerJG\obj\Debug\pcPowerJG.csprojResolveAssemblyReference.cache
+C:\tools\pcPowerJG\pcPowerJG\obj\Debug\pcPowerJG.Form1.resources
+C:\tools\pcPowerJG\pcPowerJG\obj\Debug\pcPowerJG.Properties.Resources.resources
+C:\tools\pcPowerJG\pcPowerJG\obj\Debug\pcPowerJG.csproj.GenerateResource.Cache
+C:\tools\pcPowerJG\pcPowerJG\obj\Debug\pcPowerJG.exe
+C:\tools\pcPowerJG\pcPowerJG\obj\Debug\pcPowerJG.pdb

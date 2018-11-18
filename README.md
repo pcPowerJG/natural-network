@@ -6,7 +6,7 @@ I am a person who writes a diploma and is looking for work according to his mind
 
 I will be glad to any help, I can be contacted in several ways:
 1 - via telephone +79954226535
-2 - via Skype Koito_tyan@mail.ru
+2 - via Skype koito_tyan@mail.ru
 3 - via VK https://vk.com/earth_satellite_lex
 
 I want to create a new programming language designed to quickly create and modify neural networks. At the moment I am writing a kernel on Rust, I ask you for any feasible help.

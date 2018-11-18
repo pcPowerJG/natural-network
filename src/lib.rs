@@ -209,23 +209,23 @@ pub mod Language{
 			//-----------------------------------------------------------------------------------------------------------------
 			for ch in text.chars() {			
 				//Split(input: String, ch: char)
-				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\n\n", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone());
+				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nvalue_buffer.len() - {:?}\n", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), value_buffer.clone().len());
 				if ch == ' ' || ch == '\t' {
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
 						println!("action - {:?}", action.clone());
 						match action {
 							1 => { // create
-								last_op[0] = 1; last_op[1] = 0; last_op[2] = 0;
-							},
+								last_op[0] = 1; last_op[1] = 0; last_op[2] = 0; 
+                            },
 							3 => { // object
-								last_op[0] = 3; last_op[1] = 0; last_op[2] = 0;
+								last_op[0] = 3; last_op[1] = 0; last_op[2] = 0; 
 							},
+                            17 => { continue; },
 							_ => {
 								
-							},
-						}
-						temp_buffer = String::new();
+							},                            
+						} temp_buffer = String::new();				
 					}
 					if last_op[0] == 3 && last_op[1] == 13 {
 						temp_buffer.push(ch.clone());
@@ -237,8 +237,9 @@ pub mod Language{
 						continue;
 					} else if last_op[0] == 3 && last_op[1] == 13 {
 						value_buffer.push(temp_buffer.clone());
-						//object_buffer.push((temp_name.clone(), 0));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+						object_buffer.push((temp_name.clone(), 0));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 							
+                        temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
 						temp_values = String::new();
 						temp_name = String::new();		
@@ -256,7 +257,56 @@ pub mod Language{
 
 						last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 					} else if last_op[0] == 17 && last_op[1] == 15 {
-                        
+                        let mut index_first_object: usize = 0;
+                        let mut index_second_object: usize = 0;
+                        let mut where_two_obj: bool = false;
+                        for i in 0..object_buffer.len(){
+                            if temp_values.clone() == object_buffer.clone()[i.clone()].0 {
+                                index_first_object = i.clone();
+                            } 
+                            if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
+                                where_two_obj = true;
+                                index_second_object = i.clone();
+                            }
+                        } println!("one -> {} two -> {}", temp_values.clone(), temp_buffer.clone());
+                        if where_two_obj { // если объект всё же есть
+                            match object_buffer.clone()[index_first_object].1 {
+                                1 => { // object                                    
+                                    let mut index_first_object_data: usize = 0;
+                                    for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+                                        if temp_values.clone() != object_buffer.clone()[i.clone()].0 {
+                                                index_first_object_data += 1; // не нашли, прибавляем
+                                        } else if temp_values.clone() == object_buffer.clone()[i.clone()].0 {
+                                                break; // нашли, выходим из цикла
+                                        }
+                                    }
+                                    match object_buffer.clone()[index_second_object].1 { // теперь роемся во втором объекте
+                                        // определяем тип
+                                        1 => { // тип второго объекта - объект 
+                                            let mut index_second_object_data: usize = 0;
+                                            for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 {
+                                                        index_second_object_data += 1; // не нашли, прибавляем
+                                                } else if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
+                                                        break; // нашли, выходим из цикла
+                                                }
+                                            }
+                                            println!("index_one {} index_two {}", index_first_object_data,
+                                                                index_second_object_data);
+                                            let obj2 = value_buffer.clone()[index_second_object_data].clone();                                            
+                                            value_buffer[index_first_object_data] = obj2;
+                                            println!("values -> {:?}", value_buffer.clone());
+                                            println!("добавил");
+                                            // это заставляет код obj1 = obj2
+                                            // где и то и другое типа object работать корректно
+                                            // вначале ищем объекты, потом добавляем всё в кучу.
+                                        }, 
+                                        _ => { },// ошибки быть не может, ибо объект точно есть
+                                    }
+                                },
+                                _ => {  },
+                            }
+                        }
                     }
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
@@ -365,8 +415,11 @@ pub mod Language{
 							}						
                         } else {
                             match ch.clone(){
-                                15 => { 
-                                    temp_buffer
+                                '=' => { 
+                                    println!("зашли");
+                                    temp_values = temp_buffer.clone();
+                                    println!("{}", temp_values.clone());
+                                    temp_buffer = String::new();
                                     if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
                                         last_op[0] = 17; last_op[1] = 15;
                                     }

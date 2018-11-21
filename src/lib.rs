@@ -5,10 +5,14 @@ use std::sync::Mutex;
 use std::str;
 
 use std::net::TcpStream;
-
-pub struct Thread {
-	id: usize,
-	thread: Option<thread::JoinHandle<()>>,
+pub mod ServersModule {
+    pub struct Thread {
+	    id: usize,
+	    thread: Option<std::thread::JoinHandle<()>>,
+    }
+    pub fn new_thread(id: usize, new_thread: Option<std::thread::JoinHandle<()>>) -> Thread {
+        Thread { id: id, thread: new_thread }
+    }
 }
 
 pub mod NeuralNetwork{
@@ -69,6 +73,7 @@ pub mod NeuralNetwork{
 }
 
 pub mod Language{
+    use ServersModule;
 	// endpointautomate
 	use std::net::*;
 	pub struct Words{
@@ -181,12 +186,12 @@ pub mod Language{
 		Words{ words: words }
 	}
 	//impl
-	impl Words{
+	impl Words{        
 		pub fn get_(&self, text: String){
 						
 			//let mut variables_name: Vec<String> = Vec::new();
 			let mut neural_network: Net = new();			// сама сеть
-			let mut servers: Vec<TcpStream> = Vec::new();	// сервера
+			let mut servers: Vec<ServersModule::Thread> = Vec::new();	// сервера
 
 
 			let mut buffer_action: Vec<[usize; 3]> = Vec::new();		// буффер для действий
@@ -209,7 +214,7 @@ pub mod Language{
 			//-----------------------------------------------------------------------------------------------------------------
 			for ch in text.chars() {			
 				//Split(input: String, ch: char)
-				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nvalue_buffer.len() - {:?}\n", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), value_buffer.clone().len());
+				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nvalue_buffer.len() - {:?}\nobject_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), value_buffer.clone().len(), object_buffer.clone());
 				if ch == ' ' || ch == '\t' {
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
@@ -221,23 +226,68 @@ pub mod Language{
 							3 => { // object
 								last_op[0] = 3; last_op[1] = 0; last_op[2] = 0; 
 							},
+                            2 => { // serv
+                                last_op[0] = 2; last_op[1] = 0; last_op[2] = 0;                                
+                            },
                             17 => { continue; },
 							_ => {
 								
-							},                            
-						} temp_buffer = String::new();				
+							},
+						} temp_buffer = String::new();		
 					}
 					if last_op[0] == 3 && last_op[1] == 13 {
 						temp_buffer.push(ch.clone());
 					} else { continue; }					 
 				} else if ch == '\n' {
 					// код осуществляющий работу
-					if last_op[0] == 1 {
+					if last_op[0] == 2 && last_op[1] == 15 {
+                        println!("name {}", temp_name.clone());
+                        object_buffer.push((temp_name.clone(), 2));
+                        value_buffer.push(temp_buffer.clone());
+                        let con: TcpListener = TcpListener::bind(temp_buffer.clone().as_str()).expect("server create fallied");                        
+                        //let stream: TcpStream = unsafe { std::mem::uninitialized() }; // лучше сделать через thread-ы
+                        //con.accept().expect("server accept failled").0; 
+                        let u: usize = servers.len();
+                        servers.push(ServersModule::new_thread(u, Some(std::thread::spawn(move || {
+                            //let stream = TcpListener::accept(value_buffer.as_str()).expect("server creation fall");
+                                // это отдельный модуль, сюда направляются шаги (по схеме)
+                            for stream in con.accept() {
+                                                // ВЕРНИСЬ КАК ЗАКОНЧИШЬ С ПЕРВЫМ МОДУЛЕМ
+                            }
+                        }))));
+                        temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();		
+                        last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
+                    } else if last_op[0] == 2 && last_op[1] == 0 {                                                
+                        // servers - Vec<TcpStream>
+                        // ВЕРНИСЬ
+                        println!("name {}", temp_buffer.clone());
+                        object_buffer.push((temp_buffer.clone(), 2));
+                        value_buffer.push("127.0.0.1:707".to_owned()+servers.len().to_string().as_str());
+                        let con: TcpListener = TcpListener::bind("127.0.0.1:707".to_owned()+servers.len().to_string().as_str()).expect("server create fallied");                        
+                        //let stream: TcpStream = unsafe { std::mem::uninitialized() }; // лучше сделать через thread-ы
+                        //con.accept().expect("server accept failled").0; 
+                        let u: usize = servers.len();
+                        servers.push(ServersModule::new_thread(u, Some(std::thread::spawn(move || {
+                            //let stream = TcpListener::accept(value_buffer.as_str()).expect("server creation fall");
+                                // это отдельный модуль, сюда направляются шаги (по схеме)
+                            for stream in con.accept() {
+                                                // ВЕРНИСЬ КАК ЗАКОНЧИШЬ С ПЕРВЫМ МОДУЛЕМ
+                            }
+                        }))));
+                        temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();		
+                        last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
+                    } else if last_op[0] == 1 {
 						last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 						continue;
 					} else if last_op[0] == 3 && last_op[1] == 13 {
 						value_buffer.push(temp_buffer.clone());
-						object_buffer.push((temp_name.clone(), 0));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+						object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 							
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -282,6 +332,9 @@ pub mod Language{
                                     }
                                     match object_buffer.clone()[index_second_object].1 { // теперь роемся во втором объекте
                                         // определяем тип
+                                        0 => { // тип второго объекта - нейрон
+                                            // ВЕРНУТЬСЯ
+                                        },                                        
                                         1 => { // тип второго объекта - объект 
                                             let mut index_second_object_data: usize = 0;
                                             for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
@@ -301,12 +354,40 @@ pub mod Language{
                                             // где и то и другое типа object работать корректно
                                             // вначале ищем объекты, потом добавляем всё в кучу.
                                         }, 
+                                        2 => { // server
+                                            let mut index_second_object_data: usize = 0;
+                                            let mut index_second_object_server: usize = 0;// номер сервера
+                                            for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 {
+                                                        index_second_object_data += 1; // не нашли, прибавляем
+                                                } else if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
+                                                        break; // нашли, выходим из цикла
+                                                }
+                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 &&
+                                                    object_buffer.clone()[i.clone()].1 == 2 {
+                                                    index_second_object_server += 1;
+                                                }
+                                            } // ТУТ КОСЯК, я на сделал добавление сервера. вернутся как реализую
+                                            // servers - Vec<TcpStream>
+                                            
+                                            println!("index_one {} index_two {} serv_index {}", index_first_object_data,
+                                                                index_second_object_data, index_second_object_server);
+                                            let obj2 = value_buffer.clone()[index_second_object_data].clone();                                            
+                                            value_buffer[index_first_object_data] = obj2;
+                                            println!("values -> {:?}", value_buffer.clone());
+                                            println!("добавил");
+                                        },
                                         _ => { },// ошибки быть не может, ибо объект точно есть
                                     }
                                 },
                                 _ => {  },
                             }
+                        } else { 
+                            // если объект всё же не найден
                         }
+                        temp_buffer = String::new(); // ВЕРНИСЬ
+                        temp_values = String::new();
+                        last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                     }
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
@@ -404,7 +485,7 @@ pub mod Language{
 									//if last_op[1] != 13 {										
 										last_op[1] = 13;
 										//println!("добавили имя");
-										object_buffer.push((temp_buffer.clone(), 1));
+										temp_values = temp_buffer.clone();
 										temp_buffer = String::new();
 									//}
 								},
@@ -413,6 +494,20 @@ pub mod Language{
 								},
 								_  => { if last_op[1] == 13 { temp_buffer.push(ch.clone()); } },
 							}						
+                        } else if last_op[0] == 2 && last_op[1] == 0 {
+                            match ch.clone(){
+                                '=' => { 
+                                    println!("присваиаем серверу");
+                                    temp_name = temp_buffer.clone(); 
+
+                                    println!("{}", temp_values.clone());
+                                    temp_buffer = String::new();
+                                    
+                                    last_op[0] = 2; last_op[1] = 15;// ВЕРНИСЬ
+                                    
+                                }, 
+							    _ => { temp_buffer.push(ch.clone()); },
+                            } // если есть знак присваивания
                         } else {
                             match ch.clone(){
                                 '=' => { 
@@ -431,7 +526,7 @@ pub mod Language{
 							action.push(ch);
 						}*/
 					},
-					_  => {  }
+					_  => { temp_buffer.push(ch.clone()); }
 				}				
 			}
 			println!("{:?}\n{:?}\n{:?}", object_buffer, value_buffer.clone(), neural_network.debug());
@@ -612,7 +707,7 @@ pub mod Language{
 			
 			let mut t1: Vec<f32> = Vec::new();
 			for i in 0..weight.clone().len(){
-				t1.push(0.0);
+				t1.push(weight.clone()[i]);
 			}
 			let temp: Neywork = 
 				Neywork{ weight: weight.clone(), inputs: t1.clone(), learn_speed: learn_speed, result: 0.0, name: name };
@@ -630,6 +725,7 @@ pub mod Language{
 			self.map_step.remove(index);
 		}
 		pub fn len(&self)->usize{ self.data_base.len() }
+        pub fn get_neyron_to_index(&self, index: u8){}
 	}
 	
 	

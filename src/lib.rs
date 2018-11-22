@@ -334,6 +334,27 @@ pub mod Language{
                                         // определяем тип
                                         0 => { // тип второго объекта - нейрон
                                             // ВЕРНУТЬСЯ
+                                            //get_neyron_name
+                                            //neural_network
+                                            let mut index_second_object_data: usize = 0;
+                                            let mut index_second_object_neyron: usize = 0;// номер сервера
+                                            for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 {
+                                                        index_second_object_data += 1; // не нашли, прибавляем
+                                                } else if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
+                                                        break; // нашли, выходим из цикла
+                                                }
+                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 &&
+                                                    object_buffer.clone()[i.clone()].1 == 0 {
+                                                    index_second_object_neyron += 1;
+                                                }
+                                            }
+                                            println!("index_one {} index_two {}", index_first_object_data,
+                                                                index_second_object_data);
+                                            let obj2 = neural_network.get_neyron_name(index_second_object_neyron);                                      
+                                            value_buffer[index_first_object_data] = obj2;
+                                            println!("values -> {:?}", value_buffer.clone());
+                                            println!("добавил");
                                         },                                        
                                         1 => { // тип второго объекта - объект 
                                             let mut index_second_object_data: usize = 0;
@@ -367,7 +388,7 @@ pub mod Language{
                                                     object_buffer.clone()[i.clone()].1 == 2 {
                                                     index_second_object_server += 1;
                                                 }
-                                            } // ТУТ КОСЯК, я на сделал добавление сервера. вернутся как реализую
+                                            }
                                             // servers - Vec<TcpStream>
                                             
                                             println!("index_one {} index_two {} serv_index {}", index_first_object_data,
@@ -690,9 +711,22 @@ pub mod Language{
 		pub fn get_name(&self)->String{ self.name.clone() }
 
 		pub fn debug(&self) -> (String, Vec<f32>, f32) { (self.name.clone(), self.weight.clone(), self.learn_speed.clone() ) }
+        pub fn get_all_width(&self) -> String { 
+            let mut result: String = "{ ".to_string();            
+            for item in &self.weight { 
+                result += item.to_string().as_str();
+                result.push(' ');
+            } 
+            result.push('}'); result
+        }
 	}
 	impl Net{
 		pub fn debug(&self){ for item in &self.data_base { println!(" neyron -> {:?}", item.debug()); } }
+        pub fn get_neyron_name(&self, id: usize)->String { 
+            if id.clone() < self.data_base.len() {
+                 self.data_base[id.clone()].get_all_width()
+            } else { "NONE".to_string() } 
+        }
 		pub fn new_neyron(&mut self, name: String, weight_count: usize, learn_speed: f32)->bool{
 			let mut t1: Vec<f32> = Vec::new();
 			for i in 0..weight_count{

@@ -77,7 +77,12 @@ pub mod Language{
 	// endpointautomate
 	use std::net::*;
 	pub struct Words{
-		words: Vec<String> //буква (номер от 1 (a-z)), слово
+		words: Vec<String>,                               //буква (номер от 1 (a-z)), слово
+        neural_network: Net,        			          // сама сеть
+		servers: Vec<ServersModule::Thread>,              // сервера
+		//buffer_action: Vec<[usize; 3]>,                   // буффер для действий
+		object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+	    value_buffer: Vec<String>,                        // значения 
 	}
 	pub fn on_create()->Words{
 		let mut words: Vec<String> = Vec::new(); 
@@ -87,7 +92,7 @@ pub mod Language{
 				create one { 0.005, 0.123, 0.576 }			; создаёт нейрон с именем 'one' и значением весов: 0.005, 0.123, 0.576
 				create two [3]								; создаёт нейрон с 3мя пустыми (нулевыми) весами
 		*/
-		words.push("serv".to_string());//2   // используется для явного указания создания сервера и вывод нейросети в отдельный поток
+		words.push("server".to_string());//2   // используется для явного указания создания сервера и вывод нейросети в отдельный поток
 		/*
 			ПРИМЕР: 
 				serv server1 = 192.168.0.1:8085 
@@ -158,7 +163,7 @@ pub mod Language{
 
 		*/
 		words.push("exit_()".to_string());//20//выход из приложения
-		words.push("param".to_string());//21//инициализация параметров (param PARAM_NAME [PARAM_COUNT]) для приёма с сервера
+		words.push("funct".to_string());//21//инициализация функции (param PARAM_NAME [PARAM_COUNT]) для приёма с сервера
 		/*
 			ПРИМЕР:
 				param parametrs [2]							; создаём 2 параметра
@@ -180,24 +185,32 @@ pub mod Language{
 
 				print obj1									; печатаем на консоль значение объекта 'obj1'
 		*/
+        words.push("remove".to_string());//23 //удаление
+        /*
+            ПРИМЕР: 
+                object obj1                                 ; создали объект
+                remove obj1                                 ; удалили объект
+        */
+        words.push("launch".to_string());//24 //запуск сервера в режиме приёма сообщений
+        /*
+            ПРИМЕР:
+                server serv1 =192.168.0.1:8072              ; создаём сервер и ip
+                launch serv1                                ; вводим сервер в режим приёма сообщений
+        */
 		// -------------------------------------
 		//101 - добавить из вектора
 
-		Words{ words: words }
+		Words{ words: words,  neural_network: new(), servers: Vec::new(), object_buffer: Vec::new(), value_buffer: Vec::new() }
 	}
 	//impl
+    pub fn clone(to: &mut Words, from: &Words){
+        
+    }
 	impl Words{        
-		pub fn get_(&self, text: String){
+		pub fn get_(&mut self, text: String) -> u8 {
 						
 			//let mut variables_name: Vec<String> = Vec::new();
-			let mut neural_network: Net = new();			// сама сеть
-			let mut servers: Vec<ServersModule::Thread> = Vec::new();	// сервера
-
-
-			let mut buffer_action: Vec<[usize; 3]> = Vec::new();		// буффер для действий
-
-			let mut object_buffer: Vec<(String, usize)> = Vec::new();	// наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
-			let mut value_buffer: Vec<String> = Vec::new();			// буффер для значений
+			
 			//let mut object_type_string_buffer: Vec<Vec<String>> = Vec::new();		// буффер для объектов
 			//let mut flag: u8 = 0;
 			//-----------------------------------------------------------------------------------------------------------------
@@ -214,7 +227,7 @@ pub mod Language{
 			//-----------------------------------------------------------------------------------------------------------------
 			for ch in text.chars() {			
 				//Split(input: String, ch: char)
-				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nvalue_buffer.len() - {:?}\nobject_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), value_buffer.clone().len(), object_buffer.clone());
+				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nself.value_buffer.len() - {:?}\nself.object_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), self.value_buffer.clone().len(), self.object_buffer.clone());
 				if ch == ' ' || ch == '\t' {
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
@@ -242,19 +255,11 @@ pub mod Language{
 					// код осуществляющий работу
 					if last_op[0] == 2 && last_op[1] == 15 {
                         println!("name {}", temp_name.clone());
-                        object_buffer.push((temp_name.clone(), 2));
-                        value_buffer.push(temp_buffer.clone());
-                        let con: TcpListener = TcpListener::bind(temp_buffer.clone().as_str()).expect("server create fallied");                        
-                        //let stream: TcpStream = unsafe { std::mem::uninitialized() }; // лучше сделать через thread-ы
-                        //con.accept().expect("server accept failled").0; 
-                        let u: usize = servers.len();
-                        servers.push(ServersModule::new_thread(u, Some(std::thread::spawn(move || {
-                            //let stream = TcpListener::accept(value_buffer.as_str()).expect("server creation fall");
-                                // это отдельный модуль, сюда направляются шаги (по схеме)
-                            for stream in con.accept() {
-                                                // ВЕРНИСЬ КАК ЗАКОНЧИШЬ С ПЕРВЫМ МОДУЛЕМ
-                            }
-                        }))));
+                        self.object_buffer.push((temp_name.clone(), 2));
+                        self.value_buffer.push(temp_buffer.clone());
+                       
+
+
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
 						temp_values = String::new();
@@ -264,19 +269,10 @@ pub mod Language{
                         // servers - Vec<TcpStream>
                         // ВЕРНИСЬ
                         println!("name {}", temp_buffer.clone());
-                        object_buffer.push((temp_buffer.clone(), 2));
-                        value_buffer.push("127.0.0.1:707".to_owned()+servers.len().to_string().as_str());
-                        let con: TcpListener = TcpListener::bind("127.0.0.1:707".to_owned()+servers.len().to_string().as_str()).expect("server create fallied");                        
-                        //let stream: TcpStream = unsafe { std::mem::uninitialized() }; // лучше сделать через thread-ы
-                        //con.accept().expect("server accept failled").0; 
-                        let u: usize = servers.len();
-                        servers.push(ServersModule::new_thread(u, Some(std::thread::spawn(move || {
-                            //let stream = TcpListener::accept(value_buffer.as_str()).expect("server creation fall");
-                                // это отдельный модуль, сюда направляются шаги (по схеме)
-                            for stream in con.accept() {
-                                                // ВЕРНИСЬ КАК ЗАКОНЧИШЬ С ПЕРВЫМ МОДУЛЕМ
-                            }
-                        }))));
+                        self.object_buffer.push((temp_buffer.clone(), 2));
+                        self.value_buffer.push(String::new());
+
+
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
 						temp_values = String::new();
@@ -286,8 +282,8 @@ pub mod Language{
 						last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 						continue;
 					} else if last_op[0] == 3 && last_op[1] == 13 {
-						value_buffer.push(temp_buffer.clone());
-						object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+						self.value_buffer.push(temp_buffer.clone());
+						self.object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 							
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -297,8 +293,8 @@ pub mod Language{
 						last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 
 					} else if last_op[0] == 3 && last_op[1] != 13 {
-						value_buffer.push(String::new());
-						object_buffer.push((temp_buffer.clone(), 1));
+						self.value_buffer.push(String::new());
+						self.object_buffer.push((temp_buffer.clone(), 1));
 
 						temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -310,92 +306,100 @@ pub mod Language{
                         let mut index_first_object: usize = 0;
                         let mut index_second_object: usize = 0;
                         let mut where_two_obj: bool = false;
-                        for i in 0..object_buffer.len(){
-                            if temp_values.clone() == object_buffer.clone()[i.clone()].0 {
+                        for i in 0..self.object_buffer.len(){
+                            if temp_values.clone() == self.object_buffer.clone()[i.clone()].0 {
                                 index_first_object = i.clone();
                             } 
-                            if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
+                            if temp_buffer.clone() == self.object_buffer.clone()[i.clone()].0 {
                                 where_two_obj = true;
                                 index_second_object = i.clone();
                             }
                         } println!("one -> {} two -> {}", temp_values.clone(), temp_buffer.clone());
                         if where_two_obj { // если объект всё же есть
-                            match object_buffer.clone()[index_first_object].1 {
+                            match self.object_buffer.clone()[index_first_object].1 {
+                                0 => { // neyron
+                                    //index_first_object
+                                    //index_second_object
+                                    match self.object_buffer.clone()[index_second_object].1 { 
+                                        0 => {                                             
+                                            let mut index_second_object_neyron: usize = 0;// номер сервера
+                                            for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+                                                if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 {
+                                                               // не нашли, прибавляем смотри ниже
+                                                } else if temp_buffer.clone() == self.object_buffer.clone()[i.clone()].0 {
+                                                        break; // нашли, выходим из цикла
+                                                }
+                                                if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 &&
+                                                    self.object_buffer.clone()[i.clone()].1 == 0 {
+                                                    index_second_object_neyron += 1;
+                                                }
+                                            }
+
+                                            self.value_buffer[index_first_object.clone()] =
+                                             self.neural_network.get_neyron_name(index_second_object_neyron);
+                                            // neyron_from_string(&mut self, index: usize, st: String){
+                                            self.neural_network.neyron_from_string(index_first_object.clone(),
+                                                self.value_buffer[index_first_object.clone()].clone());
+                                        },
+                                        1 => {  },                                        
+                                        _ => {  },
+                                    }
+                                },
                                 1 => { // object                                    
                                     let mut index_first_object_data: usize = 0;
-                                    for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
-                                        if temp_values.clone() != object_buffer.clone()[i.clone()].0 {
+                                    for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+                                        if temp_values.clone() != self.object_buffer.clone()[i.clone()].0 {
                                                 index_first_object_data += 1; // не нашли, прибавляем
-                                        } else if temp_values.clone() == object_buffer.clone()[i.clone()].0 {
+                                        } else if temp_values.clone() == self.object_buffer.clone()[i.clone()].0 {
                                                 break; // нашли, выходим из цикла
                                         }
                                     }
-                                    match object_buffer.clone()[index_second_object].1 { // теперь роемся во втором объекте
+                                    match self.object_buffer.clone()[index_second_object.clone()].1 { // теперь роемся во втором объекте
                                         // определяем тип
                                         0 => { // тип второго объекта - нейрон
-                                            // ВЕРНУТЬСЯ
                                             //get_neyron_name
                                             //neural_network
-                                            let mut index_second_object_data: usize = 0;
+                                            //let mut index_second_object_data: usize = 0;
                                             let mut index_second_object_neyron: usize = 0;// номер сервера
-                                            for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
-                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 {
-                                                        index_second_object_data += 1; // не нашли, прибавляем
-                                                } else if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
+                                            for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+                                                if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 {
+                                                               // не нашли, прибавляем смотри ниже
+                                                } else if temp_buffer.clone() == self.object_buffer.clone()[i.clone()].0 {
                                                         break; // нашли, выходим из цикла
                                                 }
-                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 &&
-                                                    object_buffer.clone()[i.clone()].1 == 0 {
+                                                if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 &&
+                                                    self.object_buffer.clone()[i.clone()].1 == 0 {
                                                     index_second_object_neyron += 1;
                                                 }
                                             }
                                             println!("index_one {} index_two {}", index_first_object_data,
-                                                                index_second_object_data);
-                                            let obj2 = neural_network.get_neyron_name(index_second_object_neyron);                                      
-                                            value_buffer[index_first_object_data] = obj2;
-                                            println!("values -> {:?}", value_buffer.clone());
+                                                                index_second_object.clone());
+                                            let obj2 = self.neural_network.get_neyron_name(index_second_object_neyron);                                      
+                                            self.value_buffer[index_first_object_data] = obj2;
+                                            println!("values -> {:?}", self.value_buffer.clone());
                                             println!("добавил");
                                         },                                        
                                         1 => { // тип второго объекта - объект 
-                                            let mut index_second_object_data: usize = 0;
-                                            for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
-                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 {
-                                                        index_second_object_data += 1; // не нашли, прибавляем
-                                                } else if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
-                                                        break; // нашли, выходим из цикла
-                                                }
-                                            }
+                                            
+
                                             println!("index_one {} index_two {}", index_first_object_data,
-                                                                index_second_object_data);
-                                            let obj2 = value_buffer.clone()[index_second_object_data].clone();                                            
-                                            value_buffer[index_first_object_data] = obj2;
-                                            println!("values -> {:?}", value_buffer.clone());
+                                                                index_second_object.clone());
+                                            let obj2 = self.value_buffer.clone()[index_second_object.clone()].clone();                                            
+                                            self.value_buffer[index_first_object.clone()] = obj2;
+                                            println!("values -> {:?}", self.value_buffer.clone());
                                             println!("добавил");
                                             // это заставляет код obj1 = obj2
                                             // где и то и другое типа object работать корректно
                                             // вначале ищем объекты, потом добавляем всё в кучу.
                                         }, 
-                                        2 => { // server
-                                            let mut index_second_object_data: usize = 0;
-                                            let mut index_second_object_server: usize = 0;// номер сервера
-                                            for i in 0..object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
-                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 {
-                                                        index_second_object_data += 1; // не нашли, прибавляем
-                                                } else if temp_buffer.clone() == object_buffer.clone()[i.clone()].0 {
-                                                        break; // нашли, выходим из цикла
-                                                }
-                                                if temp_buffer.clone() != object_buffer.clone()[i.clone()].0 &&
-                                                    object_buffer.clone()[i.clone()].1 == 2 {
-                                                    index_second_object_server += 1;
-                                                }
-                                            }
+                                        2 => { // server                                            
                                             // servers - Vec<TcpStream>
                                             
-                                            println!("index_one {} index_two {} serv_index {}", index_first_object_data,
-                                                                index_second_object_data, index_second_object_server);
-                                            let obj2 = value_buffer.clone()[index_second_object_data].clone();                                            
-                                            value_buffer[index_first_object_data] = obj2;
-                                            println!("values -> {:?}", value_buffer.clone());
+                                            println!("index_one {} index_two {} serv_index 'un'", index_first_object.clone(),
+                                                                index_second_object.clone());
+                                            let obj2 = self.value_buffer.clone()[index_second_object.clone()].clone();                                            
+                                            self.value_buffer[index_first_object.clone()] = obj2;
+                                            println!("values -> {:?}", self.value_buffer.clone());
                                             println!("добавил");
                                         },
                                         _ => { },// ошибки быть не может, ибо объект точно есть
@@ -412,7 +416,7 @@ pub mod Language{
                     }
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
-				match action {					// object_buffer (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+				match action {					// self.object_buffer (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 					17 => { 
 						if ch == ' ' || ch == '\t' || ch == '\n' { continue; } // обработка происходит наверху. Тут на всякий случай стоит. 
 						if last_op[0] == 1 && last_op[1] == 0 && last_op[2] == 0 {
@@ -457,12 +461,12 @@ pub mod Language{
 										temp_weight_vec.push(Words::string_to_f32(temp_values.clone())); 
 									}
 									
-									neural_network.new_neyron_options(temp_name.clone(), temp_weight_vec.clone(), 0.000001);
-									value_buffer.push(String::new());
-									object_buffer.push((temp_name.clone(), 0));	// (name, type) // 0 - нейрон, 1 - текстовый объект, 2 - числовой объект
-									//last_op[1] = 101; last_op[2] = value_buffer.len() - 1; // добавление из вектора[101] (1) id вектора (2)
+									self.neural_network.new_neyron_options(temp_name.clone(), temp_weight_vec.clone(), 0.000001);
+									self.value_buffer.push(String::new());
+									self.object_buffer.push((temp_name.clone(), 0));	// (name, type) // 0 - нейрон, 1 - текстовый объект, 2 - числовой объект
+									//last_op[1] = 101; last_op[2] = self.value_buffer.len() - 1; // добавление из вектора[101] (1) id вектора (2)
 
-									//value_buffer = Vec::new();
+									//self.value_buffer = Vec::new();
 									temp_weight_vec = Vec::new();
 									temp_name = String::new();
 									temp_values = String::new();
@@ -486,9 +490,9 @@ pub mod Language{
 										temp_weight_vec.push(0.0);
 									}
 
-									neural_network.new_neyron_options(temp_name.clone(), temp_weight_vec.clone(), 0.000001);
-									value_buffer.push(String::new());
-									object_buffer.push((temp_name.clone(), 0));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+									self.neural_network.new_neyron_options(temp_name.clone(), temp_weight_vec.clone(), 0.000001);
+									self.value_buffer.push(String::new());
+									self.object_buffer.push((temp_name.clone(), 0));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 							
 									temp_weight_vec = Vec::new();
 									temp_values = String::new();
@@ -550,7 +554,8 @@ pub mod Language{
 					_  => { temp_buffer.push(ch.clone()); }
 				}				
 			}
-			println!("{:?}\n{:?}\n{:?}", object_buffer, value_buffer.clone(), neural_network.debug());
+			println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug());
+            0 // вывод
 		}
 		pub fn string_to_usize(word: String)->usize{
 			let mut result: usize = 0;
@@ -722,11 +727,30 @@ pub mod Language{
 	}
 	impl Net{
 		pub fn debug(&self){ for item in &self.data_base { println!(" neyron -> {:?}", item.debug()); } }
+        pub fn neyron_from_string(&mut self, index: usize, st: String){
+            let mut v: Vec<&str> = st.as_str().split(' ').collect();
+            let len = v.clone().len();
+            v.remove(len - 1);
+            v.remove(0);
+
+            self.data_base[index.clone()].weight = Vec::new();
+            self.data_base[index.clone()].inputs = Vec::new();
+            for word in v {                
+                let word = word.to_string();
+                let pie: f32 = match word.parse(){
+				    Ok(A)=>{ A },
+				    Err(e)=> { return; 0.0 },
+			    };
+                self.data_base[index.clone()].weight.push(pie);
+                self.data_base[index.clone()].inputs.push(0.0);
+            }
+
+        }
         pub fn get_neyron_name(&self, id: usize)->String { 
             if id.clone() < self.data_base.len() {
                  self.data_base[id.clone()].get_all_width()
             } else { "NONE".to_string() } 
-        }
+        }        
 		pub fn new_neyron(&mut self, name: String, weight_count: usize, learn_speed: f32)->bool{
 			let mut t1: Vec<f32> = Vec::new();
 			for i in 0..weight_count{

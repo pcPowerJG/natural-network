@@ -250,7 +250,6 @@ pub mod Language{
 					}
                     if last_op[1] == 15 {  
                         // none
-                        println!("propusk");
                     } else if last_op[0] == 3 && last_op[1] == 13 {
 						temp_buffer.push(ch.clone());
 					} else { continue; }					 
@@ -377,14 +376,6 @@ pub mod Language{
                                     }
                                 },
                                 1 => { // object                                    
-                                    let mut index_first_object_data: usize = 0;
-                                    for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
-                                        if temp_values.clone() != self.object_buffer.clone()[i.clone()].0 {
-                                                index_first_object_data += 1; // не нашли, прибавляем
-                                        } else if temp_values.clone() == self.object_buffer.clone()[i.clone()].0 {
-                                                break; // нашли, выходим из цикла
-                                        }
-                                    }
                                     match self.object_buffer.clone()[index_second_object.clone()].1 { // теперь роемся во втором объекте
                                         // определяем тип
                                         0 => { // тип второго объекта - нейрон
@@ -403,17 +394,17 @@ pub mod Language{
                                                     index_second_object_neyron += 1;
                                                 }
                                             }
-                                            println!("index_one {} index_two {}", index_first_object_data,
+                                            println!("index_one {} index_two {}", index_first_object,
                                                                 index_second_object.clone());
                                             let obj2 = self.neural_network.get_neyron_name(index_second_object_neyron);                                      
-                                            self.value_buffer[index_first_object_data] = obj2;
+                                            self.value_buffer[index_first_object] = obj2;
                                             println!("values -> {:?}", self.value_buffer.clone());
                                             println!("добавил");
                                         },                                        
                                         1 => { // тип второго объекта - объект 
                                             
 
-                                            println!("index_one {} index_two {}", index_first_object_data,
+                                            println!("index_one {} index_two {}", index_first_object,
                                                                 index_second_object.clone());
                                             let obj2 = self.value_buffer.clone()[index_second_object.clone()].clone();                                            
                                             self.value_buffer[index_first_object.clone()] = obj2;
@@ -472,6 +463,12 @@ pub mod Language{
                                     }  
                                     self.neural_network.neyron_from_string(index_first_object_neyron.clone(),
                                         temp_buffer.clone());
+                                },
+                                1 => {
+                                    self.value_buffer[index_first_object.clone()] = temp_buffer;
+                                },
+                                2 => {
+                                    self.value_buffer[index_first_object.clone()] = temp_buffer;
                                 },
                                 _ => {},
                             }

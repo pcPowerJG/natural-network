@@ -162,8 +162,8 @@ pub mod Language{
 				send server1 obj_to_send					; отправляем текст "Привет Мир" на сервер
 
 		*/
-		words.push("exit_()".to_string());//20//выход из приложения
-		words.push("funct".to_string());//21//инициализация функции (param PARAM_NAME [PARAM_COUNT]) для приёма с сервера
+		words.push("exit_()".to_string());//19//выход из приложения
+		words.push("funct".to_string());//20//инициализация функции (param PARAM_NAME [PARAM_COUNT]) для приёма с сервера
 		/*
 			ПРИМЕР:
 				param parametrs [2]							; создаём 2 параметра
@@ -174,7 +174,7 @@ pub mod Language{
 				
 		*/
 		
-		words.push("print".to_string());//22 // вывод на консоль
+		words.push("print".to_string());//21 // вывод на консоль
 		/*
 			ПРИМЕР:
 				param parametrs [2]							; создаём 2 параметра
@@ -185,13 +185,13 @@ pub mod Language{
 
 				print obj1									; печатаем на консоль значение объекта 'obj1'
 		*/
-        words.push("remove".to_string());//23 //удаление
+        words.push("remove".to_string());//22 //удаление
         /*
             ПРИМЕР: 
                 object obj1                                 ; создали объект
                 remove obj1                                 ; удалили объект
         */
-        words.push("launch".to_string());//24 //запуск сервера в режиме приёма сообщений
+        words.push("launch".to_string());//23 //запуск сервера в режиме приёма сообщений
         /*
             ПРИМЕР:
                 server serv1 =192.168.0.1:8072              ; создаём сервер и ip
@@ -243,6 +243,9 @@ pub mod Language{
                                 last_op[0] = 2; last_op[1] = 0; last_op[2] = 0;                                
                             },
                             17 => { continue; },
+                            22 => { // remove
+                                last_op[0] = 22; last_op[1] = 0; last_op[2] = 0;  
+                            },
 							_ => {
 								
 							},
@@ -468,7 +471,7 @@ pub mod Language{
                                     self.value_buffer[index_first_object.clone()] = temp_buffer;
                                 },
                                 2 => {
-                                    self.value_buffer[index_first_object.clone()] = temp_buffer;
+                                    self.value_buffer[index_first_object.clone()] = temp_buffer.as_str().trim().to_string();
                                 },
                                 _ => {},
                             }
@@ -476,6 +479,15 @@ pub mod Language{
                         temp_buffer = String::new(); // ВЕРНИСЬ
                         temp_values = String::new();
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+                    } else if last_op[0] == 22 && last_op[1] == 0 && last_op[2] == 0 {
+                        // remove
+                        for i in 0..self.value_buffer.len(){
+                            if self.object_buffer[i].0 == temp_values {
+                                self.value_buffer.remove(i);
+                                self.object_buffer.remove(i);
+                                break;
+                            }
+                        }
                     }
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
@@ -596,6 +608,9 @@ pub mod Language{
                                 }, 
 							    _ => { temp_buffer.push(ch.clone()); },
                             } // если есть знак присваивания
+                        } else if last_op[0] == 22 && last_op[1] == 0 && last_op[2] == 0 { 
+                            //remove
+                            temp_values.push(ch.clone());
                         } else {
                             match ch.clone(){
                                 '=' => { 

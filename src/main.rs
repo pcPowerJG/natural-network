@@ -19,5 +19,6 @@ fn main() {
         \n ney1 = ney0
         \n ney02 = obj3
         \n ney1 = { 1.2 1.4 1.9 2.0 -5.6 }
+        \n remove obj3
         \n".to_string());
 }

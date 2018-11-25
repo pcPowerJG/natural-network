@@ -19,6 +19,9 @@ pub mod Language{
     use ServersModule;
 	// endpointautomate
 	use std::net::*;
+    use std::fs::File;
+    use std::io::prelude::*;
+
 	pub struct Words{
 		words: Vec<String>,                               //буква (номер от 1 (a-z)), слово
         neural_network: Net,        			          // сама сеть
@@ -40,6 +43,7 @@ pub mod Language{
         words.push("remove".to_string());//5 //delete
         words.push("backup".to_string());//6 //backup
         words.push("load".to_string());//7 //load data base
+        words.push("GIVE_ALL_TABLE_NAME".to_string());//8 //give all table
 
 		Words{ words: words,  neural_network: new(), servers: Vec::new(), object_buffer: Vec::new(), value_buffer: Vec::new() }
 	}
@@ -48,7 +52,7 @@ pub mod Language{
         
     }
 	impl Words{        
-		pub fn get_(&mut self, text: String) -> u8 {
+		pub fn get_(&mut self, text: String) -> String {
 						
 			//let mut variables_name: Vec<String> = Vec::new();
 			
@@ -70,11 +74,11 @@ pub mod Language{
 			//-----------------------------------------------------------------------------------------------------------------
 			for ch in text.chars() {			
 				//Split(input: String, ch: char)
-				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nself.value_buffer.len() - {:?}\nself.object_buffer - {:?}\ntemp_table - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), self.value_buffer.clone().len(), self.object_buffer.clone(), temp_table.clone());
+				//println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nself.value_buffer.len() - {:?}\nself.object_buffer - {:?}\ntemp_table - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), self.value_buffer.clone().len(), self.object_buffer.clone(), temp_table.clone());
 				if ch == ' ' || ch == '\t' {
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
-						println!("action - {:?}", action.clone());
+						//println!("action - {:?}", action.clone());
 						match action {
                             /*
                                 words.push("add".to_string());//1 // используется для создания нового нейрона		                        
@@ -100,7 +104,16 @@ pub mod Language{
                                 temp_table = String::new();
 
                                 //get_save_string
-                                println!("\n\nsave string -> {}\n\n",self.neural_network.get_save_string());
+                                //println!("\n\nsave string -> {}\n\n",self.neural_network.get_save_string());
+                                let mut file = match File::create("database.ngorge") {
+                                    Ok(A) => { A },
+                                    Err(e) => { println!("ERROR BACKUP DATABASE CRITICAL ER: {:?}", e); return "ERROR".to_string(); File::create("database.ngorge").unwrap() }
+                                };
+                                let v = self.neural_network.get_save_string();
+                                match file.write_all(v.as_bytes()) {
+                                    Ok(A) => { println!("backup ok! no error"); },
+                                    Err(e) => { println!("BACKUP CRITICAL ERROR: {:?}", e); }
+                                };
                             },
                             7 => { // load
                                 last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
@@ -108,7 +121,24 @@ pub mod Language{
                                 temp_buffer = String::new();
                                 temp_values = String::new();
                                 temp_table = String::new();
-                                
+                                let mut file = match File::open("database.ngorge") {
+                                    Ok(A) => { A },
+                                    Err(e) => { println!("CRITICAL LOAD DATA_BASE: {:?}", e); return "ERROR".to_string(); File::open("database.ngorge").unwrap(); },
+                                };
+                                let mut contents = String::new();
+                                match file.read_to_string(&mut contents) {
+                                    Ok(A) => { },
+                                    Err(e) => { println!("CRITICAL LOAD DATA_BASE: {:?}", e); return "ERROR".to_string(); },
+                                };
+                                self.get_(contents);
+                            },
+                            8 => {
+                                last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+                                temp_name = String::new();
+                                temp_buffer = String::new();
+                                temp_values = String::new();
+                                temp_table = String::new();
+                                return self.neural_network.give_all_table();
                             },
                             17 => { continue; },                            
 							_ => {  },
@@ -128,7 +158,7 @@ pub mod Language{
                         temp_buffer = String::new();                    
                     } else {
                         let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
-						println!("action - {:?}", action.clone());
+						//println!("action - {:?}", action.clone());
 						match action {
                             /*
                                 words.push("add".to_string());//1 // используется для создания нового нейрона		                        
@@ -191,15 +221,21 @@ pub mod Language{
 
                         let result = self.neural_network.get_rows(temp_values.clone(), temp_table.clone(), 
                             args, values).0;
+                        let mut r_result: String = String::new();
                         for item in result {
-                            println!("result -> {}", item);
+                            r_result += item.as_str();
+                            r_result.push('\n');
+                        }      
+                        let len = r_result.chars().count();
+                        if len > 0 {
+                            r_result.remove(len-1);
                         }
-                        
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                         temp_name = String::new();
                         temp_buffer = String::new();
                         temp_values = String::new();
                         temp_table = String::new();
+                        return r_result;
                     } else if last_op[0] == 5 && last_op[1] == 2 && last_op[2] == 4 {
                         // temp_buffer - после парам
                         // temp_values - что выбираем (ищем)
@@ -233,9 +269,7 @@ pub mod Language{
 
                         let mut result = self.neural_network.get_rows(temp_values.clone(), temp_table.clone(), 
                             args, values).1;
-                        for item in result.clone() {
-                            println!("result -> {}", item);
-                        }
+                        
                         let len_ = result.len();
                         for i in 0..len_ .clone(){
                             if len_ > 1 {
@@ -254,12 +288,39 @@ pub mod Language{
                         for index in result.clone() {
                             self.neural_network.remove_row(index);
                         }
-                        println!("\n\nsort vec -> {:?}\n\n", result.clone());
+                        
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                         temp_name = String::new();
                         temp_buffer = String::new();
                         temp_values = String::new();
                         temp_table = String::new();
+                    } else if last_op[0] == 3 && last_op[1] == 2 && last_op[2] == 255 {
+                        // temp_buffer - после парам
+                        // temp_values - что выбираем (ищем)
+                        // temp_table - таблица с короторой работаем
+                        // .get_rows() 
+                        // neural_network
+                        //get_rows(&self, 
+                        //select_row: String, table_name: String, 
+                        //args: Vec<usize>, values: Vec<String>)->Vec<String>
+                        let tem_b = temp_buffer.clone();
+                        
+                        let result = self.neural_network.get_all_rows(temp_values.clone(), temp_table.clone()).0;
+                        let mut r_result: String = String::new();
+                        for item in result {
+                            r_result += item.as_str();
+                            r_result.push('\n');
+                        }      
+                        let len = r_result.chars().count();
+                        if len > 0 {
+                            r_result.remove(len-1);
+                        }
+                        last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+                        temp_name = String::new();
+                        temp_buffer = String::new();
+                        temp_values = String::new();
+                        temp_table = String::new();
+                        return r_result;
                     }
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
@@ -321,8 +382,8 @@ pub mod Language{
 					_  => { temp_buffer.push(ch.clone()); }
 				}				
 			}
-			println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug());
-            0 // вывод
+			//println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug());
+            String::new() // вывод
 		}
 		pub fn string_to_usize(word: String)->usize{
 			let mut result: usize = 0;
@@ -529,6 +590,30 @@ pub mod Language{
             }
             ( table_rows, table_rows_usize )
         }        
+        pub fn get_all_rows(&self, select_row: String, table_name: String)->(Vec<String>, Vec<usize>){
+            let mut table_rows: Vec<String> = Vec::new();
+            let mut table_rows_usize: Vec<usize> = Vec::new();
+            if select_row == "_".to_string() {
+                for i in 0..self.data_base.len() {
+                    let temp: Row = self.data_base[i].clone();
+                    if temp.table_name == table_name {
+                        let temp1 = temp.row_arg;
+                       // for item_i in 0..temp1.clone().len() {
+                        let mut s: String = String::new();
+                        for i_tem in temp1.clone() {
+                            s += i_tem.as_str();
+                            s.push('\t');
+                        }
+                        let len = s.clone().chars().count() - 1;
+                        s.remove(len);
+                        table_rows_usize.push(i);
+                        table_rows.push(s);                        
+                        //}
+                    }
+                }
+            }
+            ( table_rows, table_rows_usize )
+        }
         pub fn get_save_string(&self)->String{
             let mut result: String = String::new();     
             result.push('\n');       
@@ -540,9 +625,18 @@ pub mod Language{
                     result += self.data_base[i].row_arg[k].as_str();
                     result.push(',');
                 }
+                let len = result.chars().count();
+                result.remove(len-1);
                 result += " }\n";
             }
             result
+        }
+        pub fn give_all_table(&self) -> String {
+            let mut result: String = String::new();
+            for i in 0..self.data_base.len(){
+                result += self.data_base[i].table_name.as_str();
+                result.push('\n');
+            } result
         }
         pub fn len(&self)->usize{ self.data_base.len() }
         pub fn get_neyron_to_index(&self, index: u8){  }

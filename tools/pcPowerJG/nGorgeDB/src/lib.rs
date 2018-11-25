@@ -97,6 +97,7 @@ pub mod Language{
                                 last_op[0] = 5;
                             },
                             6 => { // backup
+                                println!("start backup");
                                 last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                                 temp_name = String::new();
                                 temp_buffer = String::new();
@@ -116,6 +117,7 @@ pub mod Language{
                                 };
                             },
                             7 => { // load
+                                println!("start load");
                                 last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                                 temp_name = String::new();
                                 temp_buffer = String::new();
@@ -130,6 +132,7 @@ pub mod Language{
                                     Ok(A) => { },
                                     Err(e) => { println!("CRITICAL LOAD DATA_BASE: {:?}", e); return "ERROR".to_string(); },
                                 };
+                                println!("load complite");
                                 self.get_(contents);
                             },
                             8 => {

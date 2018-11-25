@@ -1,4 +1,4 @@
-
+﻿
 extern crate nGorgeDB;
 use nGorgeDB::Language;
 
@@ -14,9 +14,10 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:8091").unwrap();
 
     // accept connections and process them serially
+    let mut o = Language::on_create();
     for stream in listener.incoming() {
         let stream = stream.unwrap(); 
-        handle_client(stream);
+        o = handle_client(stream, o);
     }
 
 
@@ -25,24 +26,31 @@ fn main() {
     //println!("{}", o.get_("GIVE_ALL_TABLE_NAME \n".to_string()));
 }
 
-fn handle_client(mut stream: TcpStream) {
+fn handle_client(mut stream: TcpStream, mut o: Language::Words)->Language::Words {
     // ...
-    println!("new connection");
-    let mut o = Language::on_create();
+    println!("new connection {:?}", stream);
+    
     let b: [u8; 105] = [0; 105];
-    let mut buffer: [u8; 8024] = [0; 8024];
+    let mut buffer: [u8; 1024] = [0; 1024];
+    let mut u: usize = 0;
     loop {
         std::thread::sleep(time::Duration::from_millis(100));
         stream.read(&mut buffer);
-        if buffer.starts_with(&b) { } else {
-            let input = match String::from_utf8(buffer.to_vec()) {
-                Ok(A) => { A },
+        if buffer.starts_with(&b) { if u > 300 { println!("client say: bue"); break; } else { u += 1; } } else {
+            let mut b: Vec<u8> = Vec::new();            
+            for i in 0..1024 {
+                if buffer[i] != 0 {
+                    b.push(buffer[i]);                    
+                }
+            }
+            let input = match String::from_utf8(b) {
+                Ok(A) => { A }, // если не принимает сообщения - ставь больше задержку передачи между ними.
                 Err(e) => { println!("ERROR: {:?}", e); "\n\n".to_string() },
             };
             let result = o.get_(input);
-            if result != String::new() {
-                stream.write(result.as_bytes());
-            }
+            stream.write(result.as_bytes());
+            
+            buffer = [0; 1024];
         }
-    }
+    } o
 }

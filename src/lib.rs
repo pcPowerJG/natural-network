@@ -80,7 +80,7 @@ pub mod Language{
 		words: Vec<String>,                               //буква (номер от 1 (a-z)), слово
         neural_network: Net,        			          // сама сеть
 		servers: Vec<ServersModule::Thread>,              // сервера
-		//buffer_action: Vec<[usize; 3]>,                   // буффер для действий
+		//buffer_action: Vec<[usize; 3]>,                 // буффер для действий
 		object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 	    value_buffer: Vec<String>,                        // значения 
 	}
@@ -226,12 +226,12 @@ pub mod Language{
 			let mut last_op: [usize; 3] = [0; 3];					//  ...
 			//-----------------------------------------------------------------------------------------------------------------
 			for ch in text.chars() {			
-				//Split(input: String, ch: char)
-				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nself.value_buffer.len() - {:?}\nself.object_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), self.value_buffer.clone().len(), self.object_buffer.clone());
+				//Split(input: String, ch: char) ДЛЯ КОСЯКОВ
+				//println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nself.value_buffer.len() - {:?}\nself.object_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), self.value_buffer.clone().len(), self.object_buffer.clone());
 				if ch == ' ' || ch == '\t' {
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
-						println!("action - {:?}", action.clone());
+					//	println!("action - {:?}", action.clone());
 						match action {
 							1 => { // create
 								last_op[0] = 1; last_op[1] = 0; last_op[2] = 0; 
@@ -246,6 +246,10 @@ pub mod Language{
                             22 => { // remove
                                 last_op[0] = 22; last_op[1] = 0; last_op[2] = 0;  
                             },
+                            21 => {
+                                // print
+                                last_op[0] = 21;
+                            },
 							_ => {
 								
 							},
@@ -259,7 +263,7 @@ pub mod Language{
 				} else if ch == '\n' {
 					// код осуществляющий работу
 					if last_op[0] == 2 && last_op[1] == 15 {
-                        println!("name {}", temp_name.clone());
+                        //println!("name {}", temp_name.clone());
                         self.object_buffer.push((temp_name.clone(), 2));
                         self.value_buffer.push(temp_buffer.clone());
                        
@@ -273,7 +277,7 @@ pub mod Language{
                     } else if last_op[0] == 2 && last_op[1] == 0 {                                                
                         // servers - Vec<TcpStream>
                         // ВЕРНИСЬ
-                        println!("name {}", temp_buffer.clone());
+                        //println!("name {}", temp_buffer.clone());
                         self.object_buffer.push((temp_buffer.clone(), 2));
                         self.value_buffer.push(String::new());
 
@@ -331,7 +335,7 @@ pub mod Language{
                                 where_two_obj = true;
                                 index_second_object = i.clone();
                             }
-                        } } println!("one -> {} two -> {}", temp_values.clone(), temp_buffer.clone());
+                        } } //println!("one -> {} two -> {}", temp_values.clone(), temp_buffer.clone());
                         if where_two_obj { // если объект всё же есть
                             match self.object_buffer.clone()[index_first_object].1 {
                                 0 => { // neyron
@@ -397,22 +401,22 @@ pub mod Language{
                                                     index_second_object_neyron += 1;
                                                 }
                                             }
-                                            println!("index_one {} index_two {}", index_first_object,
-                                                                index_second_object.clone());
+                                            //println!("index_one {} index_two {}", index_first_object,
+                                            //                    index_second_object.clone());
                                             let obj2 = self.neural_network.get_neyron_name(index_second_object_neyron);                                      
                                             self.value_buffer[index_first_object] = obj2;
-                                            println!("values -> {:?}", self.value_buffer.clone());
-                                            println!("добавил");
+                                            //println!("values -> {:?}", self.value_buffer.clone());
+                                            //println!("добавил");
                                         },                                        
                                         1 => { // тип второго объекта - объект 
                                             
 
-                                            println!("index_one {} index_two {}", index_first_object,
-                                                                index_second_object.clone());
+                                            //println!("index_one {} index_two {}", index_first_object,
+                                            //                    index_second_object.clone());
                                             let obj2 = self.value_buffer.clone()[index_second_object.clone()].clone();                                            
                                             self.value_buffer[index_first_object.clone()] = obj2;
-                                            println!("values -> {:?}", self.value_buffer.clone());
-                                            println!("добавил");
+                                            //println!("values -> {:?}", self.value_buffer.clone());
+                                            //println!("добавил");
                                             // это заставляет код obj1 = obj2
                                             // где и то и другое типа object работать корректно
                                             // вначале ищем объекты, потом добавляем всё в кучу.
@@ -420,12 +424,12 @@ pub mod Language{
                                         2 => { // server                                            
                                             // servers - Vec<TcpStream>
                                             
-                                            println!("index_one {} index_two {} serv_index 'un'", index_first_object.clone(),
-                                                                index_second_object.clone());
+                                            //println!("index_one {} index_two {} serv_index 'un'", index_first_object.clone(),
+                                            //                   index_second_object.clone());
                                             let obj2 = self.value_buffer.clone()[index_second_object.clone()].clone();                                            
                                             self.value_buffer[index_first_object.clone()] = obj2;
-                                            println!("values -> {:?}", self.value_buffer.clone());
-                                            println!("добавил");
+                                            //println!("values -> {:?}", self.value_buffer.clone());
+                                            //println!("добавил");
                                         },
                                         _ => { },// ошибки быть не может, ибо объект точно есть
                                     }
@@ -433,21 +437,21 @@ pub mod Language{
                                 2 => {  // server
                                     match self.object_buffer.clone()[index_second_object.clone()].1 {
                                         1 => {
-                                            println!("index_one {} index_two {}", index_first_object.clone(),
-                                                                index_second_object.clone());
+                                            //println!("index_one {} index_two {}", index_first_object.clone(),
+                                            //                    index_second_object.clone());
                                             let obj2 = self.value_buffer.clone()[index_second_object.clone()].clone();                                            
                                             self.value_buffer[index_first_object.clone()] = obj2;
-                                            println!("values -> {:?}", self.value_buffer.clone());
-                                            println!("добавил");
+                                            //println!("values -> {:?}", self.value_buffer.clone());
+                                            //println!("добавил");
                                             
                                         },
                                         2 => {
-                                            println!("index_one {} index_two {}", index_first_object.clone(),
-                                                                index_second_object.clone());
+                                            //println!("index_one {} index_two {}", index_first_object.clone(),
+                                            //                   index_second_object.clone());
                                             let obj2 = self.value_buffer.clone()[index_second_object.clone()].clone();                                            
                                             self.value_buffer[index_first_object.clone()] = obj2;
-                                            println!("values -> {:?}", self.value_buffer.clone());
-                                            println!("добавил");
+                                            //println!("values -> {:?}", self.value_buffer.clone());
+                                            //println!("добавил");
                                         },
                                         _ => {  },
                                     }
@@ -481,13 +485,34 @@ pub mod Language{
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                     } else if last_op[0] == 22 && last_op[1] == 0 && last_op[2] == 0 {
                         // remove
-                        for i in 0..self.value_buffer.len(){
+                        for i in 0..self.value_buffer.len() {
                             if self.object_buffer[i].0 == temp_values {
                                 self.value_buffer.remove(i);
                                 self.object_buffer.remove(i);
                                 break;
                             }
                         }
+                        last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+                        temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+                    } else if last_op[0] == 21 && last_op[1] == 0 && last_op[2] == 0 {
+                        {
+                            let t = temp_buffer.as_str().trim();
+                            for i in 0..self.object_buffer.len(){
+                                if t == self.object_buffer[i].0.as_str(){
+                                    println!("{}", self.value_buffer[i]);
+                                    break;
+                                }
+                            }
+                        }
+                        last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+                        temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+                        //return 0;
                     }
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
@@ -597,10 +622,10 @@ pub mod Language{
                         } else if last_op[0] == 2 && last_op[1] == 0 {
                             match ch.clone(){
                                 '=' => { 
-                                    println!("присваиаем серверу");
+                                    //println!("присваиаем серверу");
                                     temp_name = temp_buffer.clone(); 
 
-                                    println!("{}", temp_values.clone());
+                                    //println!("{}", temp_values.clone());
                                     temp_buffer = String::new();
                                     
                                     last_op[0] = 2; last_op[1] = 15;// ВЕРНИСЬ
@@ -614,9 +639,9 @@ pub mod Language{
                         } else {
                             match ch.clone(){
                                 '=' => { 
-                                    println!("зашли");
+                                    //println!("зашли");
                                     temp_values = temp_buffer.clone();
-                                    println!("{}", temp_values.clone());
+                                    //println!("{}", temp_values.clone());
                                     temp_buffer = String::new();
                                     if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
                                         last_op[0] = 17; last_op[1] = 15;
@@ -632,8 +657,8 @@ pub mod Language{
 					_  => { temp_buffer.push(ch.clone()); }
 				}				
 			}
-			println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug());
-            0 // вывод
+			//println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug()); // ДЛЯ КОСЯКОВ
+            0 // вывод 
 		}
 		pub fn string_to_usize(word: String)->usize{
 			let mut result: usize = 0;

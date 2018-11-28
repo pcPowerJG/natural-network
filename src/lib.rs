@@ -316,8 +316,8 @@ pub mod Language{
                         let mut index_second_object: usize = 0;
                         let mut where_two_obj: bool = false;
                         let mut two_value_betwen_space: usize = 0;
-                        let temp_buffer_ = temp_buffer.clone();
-                        let mut v: Vec<&str> = temp_buffer_ .as_str().split(' ').collect();
+                        let mut temp_buffer_ = temp_buffer.clone();
+                        /*let mut v: Vec<&str> = temp_buffer_ .as_str().split(' ').collect();
 
                         for item in v {
                             if item != "" {
@@ -325,17 +325,18 @@ pub mod Language{
                                 //println!("!= \"\"");
                             }
                         }
-                        if two_value_betwen_space < 2 {
-                            temp_buffer = temp_buffer.as_str().trim().to_string();
+                        if two_value_betwen_space < 2 {*/
+                            temp_buffer_ = temp_buffer.as_str().trim().to_string();
                         for i in 0..self.object_buffer.len(){
                             if temp_values.clone() == self.object_buffer.clone()[i.clone()].0 {
                                 index_first_object = i.clone();
                             } 
-                            if temp_buffer.clone() == self.object_buffer.clone()[i.clone()].0 {
+                            if temp_buffer_.clone() == self.object_buffer.clone()[i.clone()].0 {
                                 where_two_obj = true;
                                 index_second_object = i.clone();
                             }
-                        } } //println!("one -> {} two -> {}", temp_values.clone(), temp_buffer.clone());
+                    //    } 
+                        } //println!("one -> {} two -> {}", temp_values.clone(), temp_buffer.clone());
                         if where_two_obj { // если объект всё же есть
                             match self.object_buffer.clone()[index_first_object].1 {
                                 0 => { // neyron
@@ -344,7 +345,7 @@ pub mod Language{
                                     match self.object_buffer.clone()[index_second_object].1 { 
                                         0 => {                                             
                                             let mut index_first_object_neyron: usize = 0;
-                                            let mut index_second_object_neyron: usize = 0;// номер сервера
+                                            let mut index_second_object_neyron: usize = 0;// номер 
                                             for i in 0..index_first_object.clone(){
                                                 if self.object_buffer.clone()[index_first_object.clone()].1 == 0 {
                                                     index_first_object_neyron += 1;
@@ -460,14 +461,16 @@ pub mod Language{
                             }
                         } else { 
                             // если объект всё же не найден
+                            //println!("error404 in {}", index_first_object.clone());
                             match self.object_buffer.clone()[index_first_object].1 {
                                 0 => {  // neyron
                                     let mut index_first_object_neyron: usize = 0;
                                     for i in 0..index_first_object.clone(){
-                                        if self.object_buffer.clone()[index_first_object.clone()].1 == 0 {
+                                        if self.object_buffer.clone()[i.clone()].1 == 0 {
                                             index_first_object_neyron += 1;
                                         }
                                     }  
+                                    //println!("index->{}",index_first_object_neyron.clone());
                                     self.neural_network.neyron_from_string(index_first_object_neyron.clone(),
                                         temp_buffer.clone());
                                 },
@@ -498,11 +501,25 @@ pub mod Language{
 						temp_values = String::new();
 						temp_name = String::new();
                     } else if last_op[0] == 21 && last_op[1] == 0 && last_op[2] == 0 {
-                        {
+                        { // print
                             let t = temp_buffer.as_str().trim();
                             for i in 0..self.object_buffer.len(){
                                 if t == self.object_buffer[i].0.as_str(){
-                                    println!("{}", self.value_buffer[i]);
+                                    if self.object_buffer[i].1 != 0 {
+                                        println!("{}", self.value_buffer[i]);
+                                    } else {
+                                        //get_neyron_name //self.neural_network
+                                        let mut u_for_neyron: usize = 0;
+                                        for k in 0..i {
+                                            if self.object_buffer[k].1 == 0 {
+                                                u_for_neyron += 1;
+                                            }
+                                        }
+                                        /*if u_for_neyron != 0 {
+                                            u_for_neyron -= 1;
+                                        }*/
+                                        println!("{}", self.neural_network.get_neyron_name(u_for_neyron));
+                                    }
                                     break;
                                 }
                             }
@@ -861,6 +878,7 @@ pub mod Language{
 
         }
         pub fn get_neyron_name(&self, id: usize)->String { 
+            //println!(" id -> {} in {}", id.clone(), self.data_base.len());
             if id.clone() < self.data_base.len() {
                  self.data_base[id.clone()].get_all_width()
             } else { "NONE".to_string() } 

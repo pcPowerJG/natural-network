@@ -38,6 +38,16 @@ object -> is used to create an object that stores values in memory.
           object server2_text = 192.168.0.1:8085	; take the first parameter from the server and put its value in the server2_text object
 
           server1 = server2_text			; change the ip and server port to the one that is in the object
+
+remove -> removes an object, server or neuron from memory. EXAMPLE:
+	
+	object obj =hello
+	remove obj
+	
+print -> prints the value of a variable
+
+	object obj =Hello World!
+	print obj					; will print 'Hello World'
 [RU]
 object -> используется для создания объекта, который хранит значения в памяти
 		

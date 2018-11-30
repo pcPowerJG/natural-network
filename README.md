@@ -62,6 +62,10 @@ print -> печатает значение переменной
 
 [en]
 launch -> in development will allow launching the second module of the project. send -> sending the variable value to the server, waiting for the implementation of the second project module. fucnt -> allows you to create a method, the first module will be implemented after the basic arithmetic operations on objects. if / else -> after funct.
+
+
 [ru]
+
+
 launch -> в разработке, позволит запустить второй модуль проекта. send -> отправка значения переменной на сервер, ждёт реализации второго модуля проекта. fucnt -> позволяет создать метод, первый модуль, будет реализован после базовых арифметических операций над объектами. if/else -> после funct.
 [/std]

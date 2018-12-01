@@ -17,6 +17,10 @@ fn main() {
         \n print obj1
         \n object obj4 = ney02
         \n print obj4
+        \n server serv = 192.168.0.2
+        \n server serv_= serv
+        \n print serv
+        \n print serv_
         \n".to_string());
 
     /*

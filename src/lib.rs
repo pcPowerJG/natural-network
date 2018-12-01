@@ -265,9 +265,11 @@ pub mod Language{
 					if last_op[0] == 2 && last_op[1] == 15 {
                         //println!("name {}", temp_name.clone());
                         self.object_buffer.push((temp_name.clone(), 2));
-                        self.value_buffer.push(temp_buffer.clone());
+                        self.value_buffer.push(String::new());
                        
+                        self.i_have_u(temp_buffer.clone(), temp_name.clone(), last_op.clone());
 
+                        last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();

@@ -5,12 +5,21 @@ use ThRustGorge::Language;
 fn main() {
     //println!("Hello, world!");
 	let mut o = Language::on_create();
-	o.get_("create ney02 { }
-        \n object hello =Hello, World!
+	o.get_("create ney02 
+        \n object hello = Hello, World!
         \n object obj1 
-        \n object obj2 = fl,as;lmdas;ldma;sld 
+        \n print hello
+        \n object obj2 = Other Text!
         \n obj1 = obj2
-        \n create ney1 { 1.6, 1.8, 1.20 } 
+        \n create ney1 { 1.6, 1.8, 1.20 }         
+        \n obj1 = ney1
+        \n print obj2
+        \n print obj1
+        \n object obj4 = ney02
+        \n print obj4
+        \n".to_string());
+
+    /*
         \n server serv0
         \n server serv1 =127.0.0.1:8080
         \n obj1 = serv1 
@@ -33,5 +42,6 @@ fn main() {
         \n print ney02
         \n print ney0
         \n print serv1
-        \n".to_string());
+        \n print obj4    
+    */
 }

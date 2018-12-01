@@ -287,13 +287,40 @@ pub mod Language{
 						temp_values = String::new();
 						temp_name = String::new();		
                         last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
-                    } else if last_op[0] == 1 {
-						last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
+                    } else if last_op[0] == 1 && last_op[1] == 0  {
+						
+                        //temp_buffer value name
+                        
+                        self.value_buffer.push(String::new());
+						self.object_buffer.push((temp_buffer.clone(), 0));
+                        self.neural_network.new_neyron_options(temp_buffer.clone(), temp_weight_vec.clone(), 0.000001);
+
+                        last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
+                        
+                        temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();		
 						continue;
-					} else if last_op[0] == 3 && last_op[1] == 13 {
-						self.value_buffer.push(temp_buffer.clone());
+					} else if last_op[0] == 1 && last_op[1] != 0 {
+                        last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
+                        
+                        temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();		
+						continue;
+                    } else if last_op[0] == 3 && last_op[1] == 13 {
+						self.value_buffer.push(String::new());// было: temp_buffer.clone()
 						self.object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
-							
+						//  i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3])
+
+                        last_op[0] = 17; last_op[1] = 15; last_op[2] = 0;
+                        
+                        
+                        
+                        self.i_have_u(temp_buffer.clone(), temp_values.clone(), last_op.clone());
+                        //println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug()); // ДЛЯ КОСЯКОВ
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
 						temp_values = String::new();
@@ -537,7 +564,7 @@ pub mod Language{
                                 index_second_object = i.clone();
                             }
                     //    } 
-                        } //println!("one -> {} two -> {}", temp_values.clone(), temp_buffer.clone());
+                        } //println!("one -> {} two -> {} in base: {}", temp_values.clone(), temp_buffer_.clone(), where_two_obj.clone());
                         if where_two_obj { // если объект всё же есть
                             match self.object_buffer.clone()[index_first_object].1 {
                                 0 => { // neyron
@@ -592,9 +619,7 @@ pub mod Language{
                                             //neural_network
                                             let mut index_second_object_neyron: usize = 0;
                                             for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
-                                                if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 {
-                                                               // не нашли, прибавляем смотри ниже
-                                                } else if temp_buffer_.clone() == self.object_buffer.clone()[i.clone()].0 {
+                                                if temp_buffer_.clone() == self.object_buffer.clone()[i.clone()].0 {
                                                         break; // нашли, выходим из цикла
                                                 }
                                                 if temp_buffer_.clone() != self.object_buffer.clone()[i.clone()].0 &&

@@ -5,7 +5,7 @@ use ThRustGorge::Language;
 fn main() {
     //println!("Hello, world!");
 	let mut o = Language::on_create();
-	o.get_("create ney02 
+	o.get_("perc ney02 
         \n object hello = Hello, World!
         \n object obj1 
         \n print hello

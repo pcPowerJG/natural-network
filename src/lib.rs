@@ -82,7 +82,7 @@ pub mod Language{
         neural_network: Net,        			          // сама сеть
 		servers: Vec<ServersModule::Thread>,              // сервера
 		//buffer_action: Vec<[usize; 3]>,                 // буффер для действий
-		object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+		object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
 	    value_buffer: Vec<String>,                        // значения 
 	}
 	pub fn on_create() -> Words {
@@ -206,7 +206,7 @@ pub mod Language{
 				object obj1
 				object obj2
 
-				array name_..._size 
+				array name_.size 
 				; реализация в памяти
 				array ar1 = { obj1, obj2, "hello, world" }
 
@@ -230,10 +230,75 @@ pub mod Language{
 		Words{ words: words,  neural_network: new(), servers: Vec::new(), object_buffer: Vec::new(), value_buffer: Vec::new() }
 	}
 	//impl
-    pub fn clone(to: &mut Words, from: &Words){
+    /*pub fn clone(to: &mut Words, from: &Words){
         
-    }
-	impl Words{        
+    }*/
+	impl Words{ 
+		pub fn eq_char_in_string(ch: char, st: &String)->bool{
+			for ch_in_st in st.chars(){
+				if ch == ch_in_st{
+					return true;
+				}
+			} return false;
+		}
+		// get value from name
+		pub fn get_value(&self, name: String) -> &str {
+			let mut i_: usize = 0;
+			let mut j: usize = 0;
+			for i in 0..self.object_buffer.len() {
+				if j != 0 { 
+					j += 1; 
+					if j > i_ { j = 0; }
+					continue;
+				}				
+				let (name_, type_) = &self.object_buffer[i];
+				let v: Vec<&str> = name_.split('.').collect();
+				if v.len() == 1 {
+					if *name_ == name {
+						return self.value_buffer[i].as_str();
+					}
+				} else {
+					let index_if: Vec<&str> = name.split('[').collect();
+					let mut index_count: usize = 0;
+					if index_if.len() > 1 { 
+						let index_if: Vec<&str> = index_if[1].split(']').collect();
+						
+						index_count = match index_if[0].clone().parse() {
+							Ok(A) => { A },
+							Err(e) => { println!("Index in array error"); 0 }
+						};
+					}
+					if v[0] == index_if[0] {						
+						// допилить возврат значения по индексу тута
+						//if index_if.len() > 1
+						//	&& 
+					} else {
+						match type_ {
+							3 => {
+								let count: usize = match v[1].parse() {
+									Ok(A) => { A },
+									Err(e) => { print!("Error. Array Count < 0"); 0 },
+								};
+								i_ = count.clone();
+								j = 1;
+							}, // array
+							4 => {
+								let count: usize = match v[1].parse() {
+									Ok(A) => { A },
+									Err(e) => { print!("Error. Struct Field Count < 0"); 0 },
+								};
+								i_ = count.clone();
+								j = 1;
+							}, // struct
+							_ => {
+
+							},
+						}
+					}
+				}				
+			} ""
+		}      
+		
 		pub fn get_(&mut self, text: String) -> u8 {
 						
 			//let mut variables_name: Vec<String> = Vec::new();
@@ -258,7 +323,7 @@ pub mod Language{
 				if ch == ' ' || ch == '\t' {
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
-					//	println!("action - {:?}", action.clone());
+						// println!("action - {:?}", action.clone());
 						match action {
 							1 => { // create
 								last_op[0] = 1; last_op[1] = 0; last_op[2] = 0; 
@@ -286,6 +351,8 @@ pub mod Language{
                         // none
                     } else if last_op[0] == 3 && last_op[1] == 13 {
 						temp_buffer.push(ch.clone());					
+					} else if last_op[0] == 3 && last_op[1] == 13 {
+
 					} else { continue; }					 
 				} else if ch == '\n' {
 					// код осуществляющий работу

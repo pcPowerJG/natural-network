@@ -22,6 +22,7 @@ fn main() {
         \n print serv
         \n print serv_
         \n".to_string());
+    dbg!(o.get_value("obj2".to_string()));
 
     /*
         \n server serv0

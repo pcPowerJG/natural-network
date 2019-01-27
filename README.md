@@ -35,8 +35,8 @@ object -> is used to create an object that stores values in memory.
         EXAMPLE1, using a value of type object to dynamically create a server
 
           serv server1 = 192.168.0.1:8085		; we create the server to accept parameters
-          object server2_text = 192.168.0.1:8085	; take the first parameter from the server and put its value in the server2_text object
-
+          object server2_text = 192.168.0.1:8084	
+	  
           server1 = server2_text			; change the ip and server port to the one that is in the object
 
 remove -> removes an object, server or neuron from memory. EXAMPLE:
@@ -55,11 +55,11 @@ object -> используется для создания объекта, ко�
 		ПРИМЕР1, импользование значения типа object для динамического создания сервера 
 
 		serv server1 = 192.168.0.1:8085			; создаём сервер, чтобы принять парамерты
-		object server2_text = 192.168.0.1:8085		; принимаем первый параметр с сервера и помещаем его значение в объект server2_text
+		object server2_text = 192.168.0.1:8085		
 
 		server1 = server2_text				; меняем ip и порт сервера на тот что находится в объекте 
 		
-remove -> удаляет объект, сервер или нейрон из памяти
+remove -> любой объект, сервер или нейрон из памяти
 		ПРИМЕР:
 		
 		object obj1 = asdasqwqt
@@ -68,7 +68,7 @@ remove -> удаляет объект, сервер или нейрон из п�
 print -> печатает значение переменной
 	
 		object obj1=Hello World!
-		print obj1		; напечатает Hello World
+		print obj1					; напечатает Hello World
 
 [en]
 launch -> in development will allow launching the second module of the project. send -> sending the variable value to the server, waiting for the implementation of the second project module. fucnt -> allows you to create a method, the first module will be implemented after the basic arithmetic operations on objects. if / else -> after funct.

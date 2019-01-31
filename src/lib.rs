@@ -14,6 +14,33 @@ pub mod ServersModule {
         Thread { id: id, thread: new_thread }
     }
 }
+pub mod sstring{
+	pub struct Sstring {
+		chars_: Vec<char>,		
+	}
+	impl Sstring {
+		pub fn new() -> Sstring { Sstring { chars_: Vec::new() } }
+		pub fn len(&self) -> usize { self.chars_.len() }
+		pub fn get_chars(&self) -> Vec<char> { self.chars_.clone() }
+		pub fn clone(&self) -> Sstring { Sstring { chars_: self.chars_.clone() } }
+		pub fn get_char(&self, index: usize) -> char { self.chars_[index] }
+		pub fn from_string(&mut self, cell: String) { 
+			let mut r: Vec<char> = Vec::new();
+			for ch in cell.chars() { r.push(ch); }
+			self.chars_ = r;
+		}
+		pub fn remove(&mut self, index: usize) {
+			self.chars_.remove(index);
+		}
+		pub fn to_string(&self) -> String {
+			let mut result: String = String::new();
+			for ch in self.chars_.clone() {
+				result.push(ch);
+			}
+			result
+		}
+	}
+}
 
 pub mod NeuralNetwork{
 	pub struct Net{
@@ -75,6 +102,7 @@ pub mod NeuralNetwork{
 #[warn(dead_code)]
 pub mod Language{
     use crate::ServersModule;
+    use crate::sstring::*;
 	// endpointautomate
 	use std::net::*;
 	pub struct Words{
@@ -186,18 +214,18 @@ pub mod Language{
 
 				print obj1									; печатаем на консоль значение объекта 'obj1'
 		*/
-        words.push("remove".to_string());//22 //удаление
-        /*
-            ПРИМЕР: 
-                object obj1                                 ; создали объект
-                remove obj1                                 ; удалили объект
-        */
-        words.push("launch".to_string());//23 //запуск сервера в режиме приёма сообщений
-        /*
-            ПРИМЕР:
-                server serv1 =192.168.0.1:8072              ; создаём сервер и ip
-                launch serv1                                ; вводим сервер в режим приёма сообщений
-        */
+		words.push("remove".to_string());//22 //удаление
+		/*
+		    ПРИМЕР: 
+		        object obj1                                 ; создали объект
+		        remove obj1                                 ; удалили объект
+		*/
+		words.push("launch".to_string());//23 //запуск сервера в режиме приёма сообщений
+		/*
+		    ПРИМЕР:
+		        server serv1 =192.168.0.1:8072              ; создаём сервер и ip
+		        launch serv1                                ; вводим сервер в режим приёма сообщений
+		*/
 		// -------------------------------------
 		//101 - добавить из вектора
 		words.push("array".to_string());//24 // создание массива
@@ -243,58 +271,55 @@ pub mod Language{
 		}
 		// get value from name
 		pub fn get_value(&self, name: String) -> &str {
-			let mut i_: usize = 0;
-			let mut j: usize = 0;
+			let mut search: usize = 0; 
+			let mut flag: bool = false;
+			let mut cell_name: String = String::new();
 			for i in 0..self.object_buffer.len() {
-				if j != 0 { 
-					j += 1; 
-					if j > i_ { j = 0; }
+				if search != 0 { 
+					search -= 1;
 					continue;
-				}				
+				}
+				if flag == true {
+					return self.value_buffer[i].as_str();
+				}								
 				let (name_, type_) = &self.object_buffer[i];
 				let v: Vec<&str> = name_.split('.').collect();
 				if v.len() == 1 {
-					if *name_ == name {
+					if *name_ == name || *name_ == cell_name && cell_name != String::new() {
 						return self.value_buffer[i].as_str();
-					}
+					} 
 				} else {
+					if *name_ != name { continue; }
 					let index_if: Vec<&str> = name.split('[').collect();
-					let mut index_count: usize = 0;
+					//let mut index_count: usize = 0;
 					if index_if.len() > 1 { 
 						let index_if: Vec<&str> = index_if[1].split(']').collect();
-						
-						index_count = match index_if[0].clone().parse() {
-							Ok(A) => { A },
-							Err(e) => { println!("Index in array error"); 0 }
-						};
-					}
-					if v[0] == index_if[0] {						
-						// допилить возврат значения по индексу тута
-						//if index_if.len() > 1
-						//	&& 
-					} else {
-						match type_ {
-							3 => {
-								let count: usize = match v[1].parse() {
+						let mut cell: Sstring = Sstring::new();
+						cell.from_string(index_if[0].clone().to_string());
+						if index_if.len() > 1 {
+							if !Words::eq_char_in_string('\"', &index_if[0].to_string()) {
+								search = match index_if[0].clone().parse() {
 									Ok(A) => { A },
-									Err(e) => { print!("Error. Array Count < 0"); 0 },
+									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
 								};
-								i_ = count.clone();
-								j = 1;
-							}, // array
-							4 => {
-								let count: usize = match v[1].parse() {
-									Ok(A) => { A },
-									Err(e) => { print!("Error. Struct Field Count < 0"); 0 },
-								};
-								i_ = count.clone();
-								j = 1;
-							}, // struct
-							_ => {
-
-							},
+								flag = true;
+							} else {
+								// структура
+								// через цикл вывести имя поля, проверить есть ли ']' в конце
+								// и вытащить номер
+								// будем считать что на вход передано обращение без пробелов (то бишь без имя [10]
+								// либо name ["asasas" ] ; struct1["name"]
+								// память имена: имя.колво, имя_поля, имя_поля, имя_поля, ... , прочие_имена
+								// память значения: "", "значение_1", "значение2", "значение3", ... , "прочие_значения"
+								let len: usize = cell.len();
+								if len < 2 { panic!("Cell in Struct error. Code 404_2"); }
+								cell.remove(len);
+								cell.remove(0);
+								cell_name = cell.to_string();
+								
+							}
 						}
-					}
+					}					
 				}				
 			} ""
 		}      

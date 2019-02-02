@@ -288,7 +288,7 @@ pub mod Language{
 						return Ok(i);
 					} 
 				} else {
-					if *name_ != name { continue; }
+					if v[0].to_string() != name { continue; }
 					let index_if: Vec<&str> = name.split('[').collect();
 					//let mut index_count: usize = 0;
 					if index_if.len() > 1 { 
@@ -342,7 +342,7 @@ pub mod Language{
 						return Ok(self.value_buffer[i].as_str());
 					} 
 				} else {
-					if *name_ != name { continue; }
+					if v[0].to_string() != name { continue; }
 					let index_if: Vec<&str> = name.split('[').collect();
 					//let mut index_count: usize = 0;
 					if index_if.len() > 1 { 

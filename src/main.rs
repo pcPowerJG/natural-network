@@ -19,6 +19,7 @@ fn main() {
         \n obj1 = ney1
         \n print obj2
         \n print obj1
+	\n ney02 = ney1
         \n object obj4 = ney02
         \n print obj4
         \n server serv = 192.168.0.2

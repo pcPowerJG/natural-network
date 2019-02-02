@@ -836,14 +836,20 @@ pub mod Language{
 						//index_second_object
 						match self.object_buffer.clone()[index_second_object].1 { 
 							0 => {                                             
-								let mut index_first_object_neyron: usize = 0;
-								let mut index_second_object_neyron: usize = 0;// номер 
-								for i in 0..index_first_object.clone(){
+								let mut index_first_object_neyron: usize = match self.get_index_by_type(temp_values.clone(), 0){
+									Ok(A) => A,
+									Err(e) => { panic!("net module error code: 701040"); 0 },
+								};
+								let mut index_second_object_neyron: usize = match self.get_index_by_type(temp_buffer.clone(), 0){
+									Ok(A) => A,
+									Err(e) => { panic!("net module error code: 701040"); 0 },
+								};
+								/*for i in 0..index_first_object.clone(){
 									if self.object_buffer.clone()[index_first_object.clone()].1 == 0 {
 										index_first_object_neyron += 1;
 									}
-								}
-								for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+								}*/
+								/*for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
 									if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 {
 													// не нашли, прибавляем смотри ниже
 									} else if temp_buffer.clone() == self.object_buffer.clone()[i.clone()].0 {
@@ -853,7 +859,7 @@ pub mod Language{
 										self.object_buffer.clone()[i.clone()].1 == 0 {
 										index_second_object_neyron += 1;
 									}
-								}
+								}*/
 
 								self.value_buffer[index_first_object.clone()] =
 									self.neural_network.get_neyron_name(index_second_object_neyron);

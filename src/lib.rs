@@ -809,26 +809,7 @@ pub mod Language{
 			
 			let mut two_value_betwen_space: usize = 0;
 			let mut temp_buffer_ = temp_buffer.clone().as_str().trim().to_string();
-			/*let mut v: Vec<&str> = temp_buffer_ .as_str().split(' ').collect();
-
-			for item in v {
-				if item != "" {
-					two_value_betwen_space += 1;
-					//println!("!= \"\"");
-				}
-			}
-			if two_value_betwen_space < 2 {*/
-				//temp_buffer_ = temp_buffer.as_str().trim().to_string();
-			/*for i in 0..self.object_buffer.len(){
-				if temp_values.clone() == self.object_buffer.clone()[i.clone()].0 {
-					index_first_object = i.clone();
-				} 
-				if temp_buffer_.clone() == self.object_buffer.clone()[i.clone()].0 {
-					where_two_obj = true;
-					index_second_object = i.clone();
-				}
-		//    } 
-			} */ //println!("one -> {} two -> {} in base: {}", temp_values.clone(), temp_buffer_.clone(), where_two_obj.clone());
+			
 			if where_two_obj { // если объект всё же есть
 				match self.object_buffer.clone()[index_first_object].1 {
 					0 => { // neyron
@@ -844,23 +825,7 @@ pub mod Language{
 									Ok(A) => A,
 									Err(e) => { panic!("net module error code: 701040"); 0 },
 								};
-								/*for i in 0..index_first_object.clone(){
-									if self.object_buffer.clone()[index_first_object.clone()].1 == 0 {
-										index_first_object_neyron += 1;
-									}
-								}*/
-								/*for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
-									if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 {
-													// не нашли, прибавляем смотри ниже
-									} else if temp_buffer.clone() == self.object_buffer.clone()[i.clone()].0 {
-											break; // нашли, выходим из цикла
-									}
-									if temp_buffer.clone() != self.object_buffer.clone()[i.clone()].0 &&
-										self.object_buffer.clone()[i.clone()].1 == 0 {
-										index_second_object_neyron += 1;
-									}
-								}*/
-
+								
 								self.value_buffer[index_first_object.clone()] =
 									self.neural_network.get_neyron_name(index_second_object_neyron);
 								// neyron_from_string(&mut self, index: usize, st: String){
@@ -869,12 +834,10 @@ pub mod Language{
 								self.value_buffer[index_first_object.clone()] = String::new();
 							},
 							1 => { // object
-								let mut index_first_object_neyron: usize = 0;
-								for i in 0..index_first_object.clone(){
-									if self.object_buffer.clone()[index_first_object.clone()].1 == 0 {
-										index_first_object_neyron += 1;
-									}
-								}  
+								let mut index_first_object_neyron: usize = match self.get_index_by_type(temp_values.clone(), 0){
+									Ok(A) => A,
+									Err(e) => { panic!("net module error code: 701040"); 0 },
+								};
 								self.neural_network.neyron_from_string(index_first_object_neyron.clone(),
 									self.value_buffer[index_second_object.clone()].clone());
 							},                                        
@@ -1202,85 +1165,100 @@ pub mod Language{
 
 		pub fn debug(&self) -> (String, Vec<f32>, f32) { (self.name.clone(), self.weight.clone(), self.learn_speed.clone() ) }
         pub fn get_all_width(&self) -> String { 
-            let mut result: String = "{ ".to_string();            
+            let mut result: String = "{".to_string();            
             for item in &self.weight { 
                 result += item.to_string().as_str();
-                result.push(' ');
-            } 
-            result.push('}'); result
+                result.push(',');
+            }
+	    if result.clone().chars().count() > 1 { 
+	    	result.remove(result.clone().chars().count() - 1);
+	    }
+            result.push('}'); result.push('\0'); result
         }
-	}
+}
 	impl Net{
 		pub fn debug(&self){ for item in &self.data_base { println!(" neyron -> {:?}", item.debug()); } }
-        pub fn neyron_from_string(&mut self, index: usize, st: String){
-            let mut v: Vec<&str> = st.as_str().split(' ').collect();
-            let len = v.clone().len();
-            
-            let mut b1 = false;
-            let mut b2 = false;
-
-            for word in v.clone() { 
-                if word == "{" { 
-                    b1 = true;
-                }
-                if word == "}" {
-                    b2 = true;
-                }
-            } if (b1 && b2) == false { return; }
-            //println!("v -> {:?}", v.clone());
-            self.data_base[index.clone()].weight = Vec::new();
-            self.data_base[index.clone()].inputs = Vec::new();
-            for word in v {
-                if word == "}" || word == "{" || word == "" { continue; }          
-                let word = word.to_string();
-                let pie: f32 = match word.parse(){
-				    Ok(A)=>{ A },
-				    Err(e)=> { return; 0.0 },
-			    };
-                self.data_base[index.clone()].weight.push(pie);
-                self.data_base[index.clone()].inputs.push(0.0);
-            }
-
-        }
-        pub fn get_neyron_name(&self, id: usize)->String { 
-            //println!(" id -> {} in {}", id.clone(), self.data_base.len());
-            if id.clone() < self.data_base.len() {
-                 self.data_base[id.clone()].get_all_width()
-            } else { "NONE".to_string() } 
-        }        
-		pub fn new_neyron(&mut self, name: String, weight_count: usize, learn_speed: f32)->bool{
-			let mut t1: Vec<f32> = Vec::new();
-			for i in 0..weight_count{
-				t1.push(0.0);
-			}			
-			let temp: Neywork = 
-				Neywork{ weight: t1.clone(), inputs: t1.clone(), learn_speed: learn_speed, result: 0.0, name: name };
-			self.data_base.push(temp);
-			true
-		}
-		pub fn new_neyron_options(&mut self, name: String, weight: Vec<f32>, learn_speed: f32)->bool{
-			
-			let mut t1: Vec<f32> = Vec::new();
-			for i in 0..weight.clone().len(){
-				t1.push(weight.clone()[i]);
+		pub fn neyron_from_string(&mut self, index: usize, mut st: String){
+		    let ch_len: usize = st.clone().chars().count();
+		    if ch_len == 0 { panic!("null string. error code 12001"); }
+		    st.remove(ch_len - 1);
+		    let mut v: Vec<&str> = st.as_str().split(',').collect();
+		    let len = v.clone().len();
+		    
+		    let mut b1 = false;
+		    let mut b2 = false;
+		    
+		    let len = v.len();
+		    for i in 0..v.len(){
+			for word in v[i].to_string().chars() {
+			    if word == '{' { b1 = true; }
+		    		
+			     
+			    if word == '}' { b2 = true; }
 			}
-			let temp: Neywork = 
-				Neywork{ weight: weight.clone(), inputs: t1.clone(), learn_speed: learn_speed, result: 0.0, name: name };
-			self.data_base.push(temp);
+		    }
+		    
+		    if (b1 && b2) == false { return; }
+		    //println!("v -> {:?}", v.clone());
+		    self.data_base[index.clone()].weight = Vec::new();
+		    self.data_base[index.clone()].inputs = Vec::new();
+		    for word in v {
+		        if word == "}" || word == "{" || word == "" { continue; }          
+		        let word = word.to_string();
+		        let pie: f32 = match Net::Trim('{', &Net::Trim('}', &word.to_string())).as_str().trim().parse(){
+					    Ok(A)=>{ A },
+					    Err(e)=> { panic!("incorrect value! err code 1"); 0.0 },
+				    };
+		        self.data_base[index.clone()].weight.push(pie);
+		        self.data_base[index.clone()].inputs.push(0.0);
+		    }
 
-			true
 		}
-		pub fn remove_neyron(&mut self, index: usize){
-			self.data_base.remove(index);
+		pub fn Trim(ch: char, st: &String)->String{
+			let mut result: String = String::new();
+			for char_ in st.chars() {
+				if char_ != ch { result.push(char_); }
+			} result
 		}
-		pub fn add_step(&mut self, neyron_output: usize, neyron_to: usize, neyron_to_inputID: usize){
-			self.map_step.push((neyron_output, neyron_to, neyron_to_inputID));
-		}
-		pub fn remove_step(&mut self, index: usize){
-			self.map_step.remove(index);
-		}
-		pub fn len(&self)->usize{ self.data_base.len() }
-        pub fn get_neyron_to_index(&self, index: u8){}
+		pub fn get_neyron_name(&self, id: usize)->String { 
+		    //println!(" id -> {} in {}", id.clone(), self.data_base.len());
+		    if id.clone() < self.data_base.len() {
+		         self.data_base[id.clone()].get_all_width()
+		    } else { "NONE".to_string() } 
+		}        
+			pub fn new_neyron(&mut self, name: String, weight_count: usize, learn_speed: f32)->bool{
+				let mut t1: Vec<f32> = Vec::new();
+				for i in 0..weight_count{
+					t1.push(0.0);
+				}			
+				let temp: Neywork = 
+					Neywork{ weight: t1.clone(), inputs: t1.clone(), learn_speed: learn_speed, result: 0.0, name: name };
+				self.data_base.push(temp);
+				true
+			}
+			pub fn new_neyron_options(&mut self, name: String, weight: Vec<f32>, learn_speed: f32)->bool{
+				
+				let mut t1: Vec<f32> = Vec::new();
+				for i in 0..weight.clone().len(){
+					t1.push(weight.clone()[i]);
+				}
+				let temp: Neywork = 
+					Neywork{ weight: weight.clone(), inputs: t1.clone(), learn_speed: learn_speed, result: 0.0, name: name };
+				self.data_base.push(temp);
+
+				true
+			}
+			pub fn remove_neyron(&mut self, index: usize){
+				self.data_base.remove(index);
+			}
+			pub fn add_step(&mut self, neyron_output: usize, neyron_to: usize, neyron_to_inputID: usize){
+				self.map_step.push((neyron_output, neyron_to, neyron_to_inputID));
+			}
+			pub fn remove_step(&mut self, index: usize){
+				self.map_step.remove(index);
+			}
+			pub fn len(&self)->usize{ self.data_base.len() }
+		pub fn get_neyron_to_index(&self, index: u8){}
 	}
 	// <MATH> CODE
 	fn to_char_arr(input: &str)->Vec<String>{    

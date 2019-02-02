@@ -8,7 +8,16 @@ fn main() {
 	//pub fn unsafe_funtion_memory_add(&mut self, name: String, value: String, type_: usize){
 	o.unsafe_funtion_memory_add("array1.2".to_string(), "".to_string(), 5);
 	o.unsafe_funtion_memory_add("one".to_string(), "".to_string(), 1);
-	o.unsafe_funtion_memory_add("two".to_string(), "".to_string(), 2);		
+	o.unsafe_funtion_memory_add("two".to_string(), "".to_string(), 2);
+	/*o.get_("perc ney02        
+        \n object obj4 = ney02
+        \n print obj4
+	\n obj4 = { 1.9, 1.20, 20.225 }\0
+	\n print obj4
+	\n ney02 = obj4
+	\n obj4 = ney02
+        \n print obj4        
+        \n".to_string());*/		
 	o.get_("perc ney02 
         \n object hello = Hello, World!\0
         \n object obj1 
@@ -21,6 +30,10 @@ fn main() {
         \n print obj1
 	\n ney02 = ney1
         \n object obj4 = ney02
+        \n print obj4
+	\n obj4 = { 1.9, 1.20, 20.225 }\0
+	\n ney02 = obj4
+	\n obj4 = ney02
         \n print obj4
         \n server serv = 192.168.0.2
         \n server serv_= serv

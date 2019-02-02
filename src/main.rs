@@ -9,6 +9,8 @@ fn main() {
 	o.unsafe_funtion_memory_add("array1.2".to_string(), "".to_string(), 5);
 	o.unsafe_funtion_memory_add("one".to_string(), "".to_string(), 1);
 	o.unsafe_funtion_memory_add("two".to_string(), "".to_string(), 2);
+	//pub fn get_index(&self, mut name: String) -> Result<usize , ()> {
+	println!("{}", o.get_index("array1[\"one\"]".to_string()).unwrap().to_string());
 	/*o.get_("perc ney02        
         \n object obj4 = ney02
         \n print obj4
@@ -18,7 +20,7 @@ fn main() {
 	\n obj4 = ney02
         \n print obj4        
         \n".to_string());*/		
-	o.get_("perc ney02 
+	/*o.get_("perc ney02 
         \n object hello = Hello, World!\0
         \n object obj1 
         \n print hello
@@ -39,8 +41,8 @@ fn main() {
         \n server serv_= serv
         \n print serv
         \n print serv_
-        \n".to_string());
-	//o.unsafe_print_bufs_and_vals();
+        \n".to_string());*/
+	//o.unsafe_print_bufs_and_vals();	
     dbg!(o.get_value("obj2".to_string()));
 
     /*

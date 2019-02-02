@@ -298,16 +298,20 @@ pub mod Language{
 				}								
 				let (name_, type_) = &self.object_buffer[i];
 				let v: Vec<&str> = name_.split('.').collect();
+				//println!("{:?}", v.clone());
 				if v.len() == 1 {
 					if *name_ == name || (*name_ == cell_name && cell_name != String::new()) {
 						return Ok(i);
 					} 
 				} else {
-					if v[0].to_string() != name { continue; }
 					let index_if: Vec<&str> = name.split('[').collect();
+					if v[0].to_string() != index_if[0].to_string() { continue; }
+					
+					
 					//let mut index_count: usize = 0;
 					if index_if.len() > 1 { 
 						let index_if: Vec<&str> = index_if[1].split(']').collect();
+						println!("{:?}", index_if.clone());
 						let mut cell: Sstring = Sstring::new();
 						cell.from_string(index_if[0].clone().to_string());
 						if index_if.len() > 1 {
@@ -316,6 +320,8 @@ pub mod Language{
 									Ok(A) => { A },
 									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
 								};
+								//search += 1;
+								//println!("search: {}", search.clone());
 								flag = true;
 							} else {
 								// структура
@@ -327,7 +333,7 @@ pub mod Language{
 								// память значения: "", "значение_1", "значение2", "значение3", ... , "прочие_значения"
 								let len: usize = cell.len();
 								if len < 2 { panic!("Cell in Struct error. Code 404_2"); }
-								cell.remove(len);
+								cell.remove(len-1);
 								cell.remove(0);
 								cell_name = cell.to_string();
 								
@@ -335,7 +341,7 @@ pub mod Language{
 						}
 					}					
 				}				
-			} Err(())
+			} println!("ASDadasdasdaDASDADA");Err(())
 		}
 		pub fn get_index_by_type(&self, mut name: String, types_: usize) -> Result<usize , ()>{
 			//pub fn eq_char_in_string_r(ch: char, mut st: String, symbol_count: usize)->bool{ 

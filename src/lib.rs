@@ -107,11 +107,11 @@ pub mod Language{
 	use std::net::*;
 	pub struct Words{
 		words: Vec<String>,                               // буква (номер от 1 (a-z)), слово
-        neural_network: Net,        			          // сама сеть
+        	neural_network: Net,        			  // сама сеть
 		servers: Vec<ServersModule::Thread>,              // сервера
 		//buffer_action: Vec<[usize; 3]>,                 // буффер для действий
 		object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
-	    value_buffer: Vec<String>,                        // значения 
+	        value_buffer: Vec<String>,                        // значения 
 	}
 	pub fn on_create() -> Words {
 		let mut words: Vec<String> = Vec::new(); 
@@ -267,9 +267,24 @@ pub mod Language{
 				if ch == ch_in_st{
 					return true;
 				}
-			} return false;
+			} false
 		}
-		pub fn get_index(&self, name: String) -> Result<usize , ()> {
+		pub fn eq_char_in_string_r(ch: char, mut st: String, symbol_count: usize)->bool{ 
+			st = st.clone().chars().rev().collect::<String>();
+			let mut i = 0;
+			for ch1 in st.chars() {
+				if i > symbol_count { return false; }
+				if ch == ch1 { return true; }
+				i += 1;
+			}
+			false 
+		}
+		pub fn get_index(&self, mut name: String) -> Result<usize , ()> {
+			//pub fn eq_char_in_string_r(ch: char, mut st: String, symbol_count: usize)->bool{ 
+			if !Words::eq_char_in_string_r('\0', name.clone(), 1){
+				name = name.clone().as_str().trim().to_string(); // проверяем на признак конца строки..
+			} else { return Err(()); }
+			//println!("name: {}", name.clone());
 			let mut search: usize = 0; 
 			let mut flag: bool = false;
 			let mut cell_name: String = String::new();
@@ -322,8 +337,72 @@ pub mod Language{
 				}				
 			} Err(())
 		}
+		pub fn get_index_by_type(&self, mut name: String, types_: usize) -> Result<usize , ()>{
+			//pub fn eq_char_in_string_r(ch: char, mut st: String, symbol_count: usize)->bool{ 
+			if !Words::eq_char_in_string_r('\0', name.clone(), 1){
+				name = name.clone().as_str().trim().to_string(); // проверяем на признак конца строки..
+			} else { return Err(()); }	
+			let mut j: usize = 0;		
+			let mut search: usize = 0; 
+			let mut flag: bool = false;
+			let mut cell_name: String = String::new();
+			for i in 0..self.object_buffer.len() {
+				if search != 0 { 
+					search -= 1;
+					continue;
+				}
+				if flag == true {
+					return Ok(j);
+				}								
+				let (name_, type_) = &self.object_buffer[i];
+				let v: Vec<&str> = name_.split('.').collect();
+				if v.len() == 1 {
+					if *name_ == name || (*name_ == cell_name && cell_name != String::new()) {
+						return Ok(j);
+					} 
+				} else {
+					if v[0].to_string() != name { continue; }
+					let index_if: Vec<&str> = name.split('[').collect();
+					//let mut index_count: usize = 0;
+					if index_if.len() > 1 { 
+						let index_if: Vec<&str> = index_if[1].split(']').collect();
+						let mut cell: Sstring = Sstring::new();
+						cell.from_string(index_if[0].clone().to_string());
+						if index_if.len() > 1 {
+							if !Words::eq_char_in_string('\"', &index_if[0].to_string()) {
+								search = match index_if[0].clone().parse() {
+									Ok(A) => { A },
+									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
+								};
+								flag = true;
+							} else {
+								// структура
+								// через цикл вывести имя поля, проверить есть ли ']' в конце
+								// и вытащить номер
+								// будем считать что на вход передано обращение без пробелов (то бишь без имя [10]
+								// либо name ["asasas" ] ; struct1["name"]
+								// память имена: имя.колво, имя_поля, имя_поля, имя_поля, ... , прочие_имена
+								// память значения: "", "значение_1", "значение2", "значение3", ... , "прочие_значения"
+								let len: usize = cell.len();
+								if len < 2 { panic!("Cell in Struct error. Code 404_2"); }
+								cell.remove(len);
+								cell.remove(0);
+								cell_name = cell.to_string();
+								
+							}
+						}
+					}					
+				}
+				if self.object_buffer[i].1.clone() == types_ { j += 1; }
+			} Err(())
+
+		}
 		// get value from name
-		pub fn get_value(&self, name: String) -> Result<&str, ()> {
+		pub fn get_value(&self, mut name: String) -> Result<&str, ()> {
+			//pub fn eq_char_in_string_r(ch: char, mut st: String, symbol_count: usize)->bool{ 
+			if !Words::eq_char_in_string_r('\0', name.clone(), 1){
+				name = name.clone().as_str().trim().to_string(); // проверяем на признак конца строки..
+			} else { return Err(()); }			
 			let mut search: usize = 0; 
 			let mut flag: bool = false;
 			let mut cell_name: String = String::new();
@@ -718,11 +797,18 @@ pub mod Language{
 		}
 
         pub fn i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3]) {
-            		let mut index_first_object: usize = 0;
-			let mut index_second_object: usize = 0;
-			let mut where_two_obj: bool = false;
+			let mut where_two_obj: bool = false;            		
+			let mut index_first_object: usize = match self.get_index(temp_values.clone()){
+				Ok(A) => A,
+				Err(e) => { panic!("first variable not found!!"); 0 },
+			};
+			let mut index_second_object: usize = match self.get_index(temp_buffer.clone()){
+				Ok(A) => { where_two_obj = true; A },
+				Err(e) => { 0 },
+			};
+			
 			let mut two_value_betwen_space: usize = 0;
-			let mut temp_buffer_ = temp_buffer.clone();
+			let mut temp_buffer_ = temp_buffer.clone().as_str().trim().to_string();
 			/*let mut v: Vec<&str> = temp_buffer_ .as_str().split(' ').collect();
 
 			for item in v {
@@ -732,8 +818,8 @@ pub mod Language{
 				}
 			}
 			if two_value_betwen_space < 2 {*/
-				temp_buffer_ = temp_buffer.as_str().trim().to_string();
-			for i in 0..self.object_buffer.len(){
+				//temp_buffer_ = temp_buffer.as_str().trim().to_string();
+			/*for i in 0..self.object_buffer.len(){
 				if temp_values.clone() == self.object_buffer.clone()[i.clone()].0 {
 					index_first_object = i.clone();
 				} 
@@ -742,7 +828,7 @@ pub mod Language{
 					index_second_object = i.clone();
 				}
 		//    } 
-			} //println!("one -> {} two -> {} in base: {}", temp_values.clone(), temp_buffer_.clone(), where_two_obj.clone());
+			} */ //println!("one -> {} two -> {} in base: {}", temp_values.clone(), temp_buffer_.clone(), where_two_obj.clone());
 			if where_two_obj { // если объект всё же есть
 				match self.object_buffer.clone()[index_first_object].1 {
 					0 => { // neyron
@@ -795,8 +881,11 @@ pub mod Language{
 							0 => { // тип второго объекта - нейрон
 								//get_neyron_name
 								//neural_network
-								let mut index_second_object_neyron: usize = 0;
-								for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
+								let mut index_second_object_neyron: usize = match self.get_index_by_type(temp_buffer_.clone(), 0){
+									Ok(A) => A,
+									Err(e) => { panic!("net module error code: 701040"); 0 },
+								};
+								/*for i in 0..self.object_buffer.len(){ // ищем index объекта в общей "куче" значений всех объектов
 									if temp_buffer_.clone() == self.object_buffer.clone()[i.clone()].0 {
 											break; // нашли, выходим из цикла
 									}
@@ -804,7 +893,7 @@ pub mod Language{
 										self.object_buffer.clone()[i.clone()].1 == 0 {
 										index_second_object_neyron += 1;
 									}
-								}
+								}*/
 
 								self.value_buffer[index_first_object.clone()] =
 									self.neural_network.get_neyron_name(index_second_object_neyron);
@@ -886,6 +975,19 @@ pub mod Language{
 				}
 			}
         }
+	pub fn unsafe_funtion_memory_add(&mut self, name: String, value: String, type_: usize){
+		//object_buffer: Vec<(String, usize)>,              // наименования объектов 	
+		// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура, 5 - array
+	        //value_buffer: Vec<String>,                        // значения 
+		self.object_buffer.push((name, type_));
+		self.value_buffer.push(value);
+	}
+	pub fn unsafe_print_bufs_and_vals(&self){
+		for i in 0..self.object_buffer.clone().len(){
+			println!("variable: {}\nvalue: {}",self.object_buffer[i].clone().0, self.value_buffer[i].clone());
+		}		
+		self.neural_network.debug();
+	}
 
         //---------------------------------------------------------------
         // all_row - полная строка со всеми математическими вычеслениями

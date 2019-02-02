@@ -5,13 +5,17 @@ use ThRustGorge::Language;
 fn main() {
     //println!("Hello, world!");
 	let mut o = Language::on_create();
+	//pub fn unsafe_funtion_memory_add(&mut self, name: String, value: String, type_: usize){
+	o.unsafe_funtion_memory_add("array1.2".to_string(), "".to_string(), 5);
+	o.unsafe_funtion_memory_add("one".to_string(), "".to_string(), 1);
+	o.unsafe_funtion_memory_add("two".to_string(), "".to_string(), 2);		
 	o.get_("perc ney02 
-        \n object hello = Hello, World!
+        \n object hello = Hello, World!\0
         \n object obj1 
         \n print hello
-        \n object obj2 = Other Text!
+        \n object obj2 = Other Text!\0
         \n obj1 = obj2
-        \n create ney1 { 1.6, 1.8, 1.20 }         
+        \n perc ney1 { 1.6, 1.8, 1.20 }         
         \n obj1 = ney1
         \n print obj2
         \n print obj1
@@ -22,6 +26,7 @@ fn main() {
         \n print serv
         \n print serv_
         \n".to_string());
+	//o.unsafe_print_bufs_and_vals();
     dbg!(o.get_value("obj2".to_string()));
 
     /*

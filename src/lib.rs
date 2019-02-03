@@ -297,14 +297,18 @@ pub mod Language{
 				}
 				if flag == true {
 					return Ok(i);
-				}								
+				}	
+				if struct_count != 0 && cell_name != String::new() {
+					struct_count -= 1;
+					if struct_count == 0 { panic!("Var in struct not found. Code 404_3"); }
+				}							
 				let (name_, type_) = &self.object_buffer[i];
 				let v: Vec<&str> = name_.split('.').collect();
 				//println!("{:?}", v.clone());
-				if v.len() == 1 {
+				if v.len() == 1 {					
 					if *name_ == name || (*name_ == cell_name && cell_name != String::new()) {
 						return Ok(i);
-					} 
+					} 					
 				} else {
 					let index_if: Vec<&str> = name.split('[').collect();
 					if v[0].to_string() != index_if[0].to_string() { continue; }
@@ -339,14 +343,10 @@ pub mod Language{
 								struct_count = match v[1].clone().trim().parse() { 
 									Ok(A) => A,
 									Err(e) => { panic!("memory array error. Code 201"); 0 },
-								};
+								}; struct_count += 1;
 							}
 						}
-					}
-				if struct_count != 0 && cell_name != String::new() {
-					struct_count -= 1;
-					if struct_count == 0 { panic!("Var in truct not found. Code 404_3"); }
-				}					
+					}									
 				}				
 			} Err(())
 		}

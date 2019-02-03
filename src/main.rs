@@ -9,6 +9,7 @@ fn main() {
 	o.unsafe_funtion_memory_add("array1.2".to_string(), "".to_string(), 5);
 	o.unsafe_funtion_memory_add("one".to_string(), "".to_string(), 1);
 	o.unsafe_funtion_memory_add("two".to_string(), "".to_string(), 2);
+	o.unsafe_funtion_memory_add("1wssw".to_string(), "".to_string(), 2);
 	//pub fn get_index(&self, mut name: String) -> Result<usize , ()> {
 	println!("{}", o.get_index("array1[\"one\"]".to_string()).unwrap().to_string());
 	/*o.get_("perc ney02        

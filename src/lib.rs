@@ -287,6 +287,8 @@ pub mod Language{
 			//println!("name: {}", name.clone());
 			let mut search: usize = 0; 
 			let mut flag: bool = false;
+			let mut struct_count: usize = 0;
+
 			let mut cell_name: String = String::new();
 			for i in 0..self.object_buffer.len() {
 				if search != 0 { 
@@ -320,8 +322,6 @@ pub mod Language{
 									Ok(A) => { A },
 									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
 								};
-								//search += 1;
-								//println!("search: {}", search.clone());
 								flag = true;
 							} else {
 								// структура
@@ -336,12 +336,19 @@ pub mod Language{
 								cell.remove(len-1);
 								cell.remove(0);
 								cell_name = cell.to_string();
-								
+								struct_count = match v[1].clone().trim().parse() { 
+									Ok(A) => A,
+									Err(e) => { panic!("memory array error. Code 201"); 0 },
+								};
 							}
 						}
-					}					
+					}
+				if struct_count != 0 && cell_name != String::new() {
+					struct_count -= 1;
+					if struct_count == 0 { panic!("Var in truct not found. Code 404_3"); }
+				}					
 				}				
-			} println!("ASDadasdasdaDASDADA");Err(())
+			} Err(())
 		}
 		pub fn get_index_by_type(&self, mut name: String, types_: usize) -> Result<usize , ()>{
 			//pub fn eq_char_in_string_r(ch: char, mut st: String, symbol_count: usize)->bool{ 

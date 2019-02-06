@@ -8,3 +8,16 @@
 	поле структуры в памяти: имя_поля
 	
 	обращение к элементу: имя_структуры["имя_поля"]
+
+	array new_array = { obj1, obj2,text_value\0, intexger }
+	
+	struct new_struct = [ name_var1: type { value } ] [ name_var2: type { value } ]
+	
+	struct string_n = [ String_var: 0 {some text\0} ] [ string_var2: 0 {some text 2\0} ]
+	string_n["String_var"] =new value\0
+	
+	new_struct["name_var1"] = some data
+	
+	new_array[1] = object_data
+	
+	в ближайших обновлениях, потом будет реализация if - else - else_if 

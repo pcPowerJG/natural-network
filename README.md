@@ -8,6 +8,7 @@ I will be glad to any help, I can be contacted in several ways:
 1 - via telephone +79954226535,
 2 - via Skype and e-mail ?????????,
 3 - via VK https://vk.com/earth_satellite_alex.
+3.1 - my helper https://vk.com/unicode_72
 
 I want to create a new programming language designed to quickly create and modify neural networks. At the moment I am writing a kernel on Rust, I ask you for any feasible help.
 
@@ -21,6 +22,7 @@ Below is a complete description of the functions currently available and a gener
 1 - через телефон +79954226535,
 2 - через Скайп или почту ????????????????,
 3 - через VK https://vk.com/earth_satellite_alex.
+3.1 - моя сестра и главный помошник https://vk.com/unicode_72
 
 Я хочу создать новый язык программирования, предназначенный для быстрого создания и изменения нейросетей. На данный момент я пишу ядро на Rust, прошу Вас о любой посильной помощи.
 

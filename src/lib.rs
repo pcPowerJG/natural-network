@@ -106,20 +106,20 @@ pub mod Language{
 	// endpointautomate
 	use std::net::*;
 	pub struct Words{
-		words: Vec<String>,                               // буква (номер от 1 (a-z)), слово
-        	neural_network: Net,        			  // сама сеть
-		servers: Vec<ServersModule::Thread>,              // сервера
-		//buffer_action: Vec<[usize; 3]>,                 // буффер для действий
-		object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
+			words: Vec<String>,                               // буква (номер от 1 (a-z)), слово
+        	neural_network: Net,        			  		  // сама сеть
+			servers: Vec<ServersModule::Thread>,              // сервера
+			//buffer_action: Vec<[usize; 3]>,                 // буффер для действий
+			object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
 	        value_buffer: Vec<String>,                        // значения 
 	}
 	pub fn on_create() -> Words {
 		let mut words: Vec<String> = Vec::new(); 
-		words.push("perc".to_string());//1 // используется для создания нового перцептона
+		words.push("neyron".to_string());//1 // используется для создания нового перцептона
 		/*
 			ПРИМЕР:
-				perc one { 0.005, 0.123, 0.576 }			; создаёт перцептон с именем 'one' и значением весов: 0.005, 0.123, 0.576
-				perc two [3]								; создаёт перцептон с 3мя пустыми (нулевыми) весами
+				neyron one { 0.005, 0.123, 0.576 }			; создаёт нейрон с именем 'one' и значением весов: 0.005, 0.123, 0.576
+				neyron two [3]								; создаёт нейрон с 3мя пустыми (нулевыми) весами
 		*/
 		words.push("server".to_string());//2   // используется для явного указания создания сервера и вывод нейросети в отдельный поток
 		/*
@@ -253,8 +253,25 @@ pub mod Language{
 		words.push("neyron".to_string()); //28 // создание нейрона
 		/**/
 		words.push("struct".to_string()); //29 // создание структуры
-		/**/
+		/*
+				struct st_one
+					string s1
+					int s2
+					object s3
+				end
+		*/
 		words.push("\"".to_string()); //30 // служебное, для текста
+		words.push("to".to_string()); //31 // для сервера
+		/*
+			server s1 = 192.168.0.1
+			network to s1
+				|728| -> ||500, 500|->|200|| -> |10|
+				
+				; 728 входов, 500 и 500 изолированных слоёв, которые переходят в 200 слоёв и они в свою очередь переходят в 10 выходов
+			end
+		*/
+		words.push("network".to_string());//32// для сети
+		words.push("end".to_string());//33//end operation
 		Words{ words: words,  neural_network: new(), servers: Vec::new(), object_buffer: Vec::new(), value_buffer: Vec::new() }
 	}
 	//impl
@@ -321,7 +338,8 @@ pub mod Language{
 						let mut cell: Sstring = Sstring::new();
 						cell.from_string(index_if[0].clone().to_string());
 						if index_if.len() > 1 {
-							if !Words::eq_char_in_string('\"', &index_if[0].to_string()) {
+							if !Words::eq_char_in_string('\"', &index_if[0].to_string()) { 
+								//"
 								search = match index_if[0].clone().parse() {
 									Ok(A) => { A },
 									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
@@ -383,6 +401,7 @@ pub mod Language{
 						cell.from_string(index_if[0].clone().to_string());
 						if index_if.len() > 1 {
 							if !Words::eq_char_in_string('\"', &index_if[0].to_string()) {
+								//"
 								search = match index_if[0].clone().parse() {
 									Ok(A) => { A },
 									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
@@ -443,6 +462,7 @@ pub mod Language{
 						cell.from_string(index_if[0].clone().to_string());
 						if index_if.len() > 1 {
 							if !Words::eq_char_in_string('\"', &index_if[0].to_string()) {
+								//"
 								search = match index_if[0].clone().parse() {
 									Ok(A) => { A },
 									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
@@ -512,6 +532,44 @@ pub mod Language{
                                 // print
                                 last_op[0] = 21;
                             },
+							24 => {
+								// array
+								last_op[0] = 24;
+								last_op[1] = 0; last_op[2] = 0;
+							},
+							29 => { // struct
+								last_op[0] = 29; last_op[1] = 0; last_op[2] = 0;
+								//last_op[1] = 17;
+								// не забудь прикрутить имя..
+								// last_op[1] <- тип поля
+								// last_op[2] <- длинна структуры
+								//let mut temp_values - имя структуры
+								//let mut temp_name   - значение по умолчанию
+								//let mut temp_buffer - имя поля
+								
+								//object_buffer: Vec<(String, usize)>, // наименования объектов // (name, type) 
+								// 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
+								//value_buffer: Vec<String>, // значения 
+							},
+							33 => { // end
+								if last_op[0] == 29 {
+									let insert_to: usize = self.value_buffer.len() - last_op[2];
+									// pub fn insert(&mut self, index: usize, element: T)
+									temp_values.push('.');
+									temp_values += last_op[2].clone().to_string().as_str();
+									self.object_buffer.insert(insert_to, (temp_values, 4));
+									self.value_buffer.insert(insert_to, "".to_string());
+									//last_op[1] = 17; // ставим в некуда
+									
+									last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+									temp_buffer = String::new();
+									temp_weight_vec = Vec::new();
+									temp_values = String::new();
+									temp_name = String::new();
+								}
+							},
+							//words.push("struct".to_string()); //29 // создание структуры
+							//words.push("end".to_string());//33//end operation
 							_ => {
 								
 							},
@@ -523,6 +581,42 @@ pub mod Language{
 						temp_buffer.push(ch.clone());					
 					} else if last_op[0] == 3 && last_op[1] == 13 {
 
+					} else if last_op[0] == 24 && last_op[1] == 0 {
+						last_op[1] = 17;
+					} else if last_op[0] == 29 && last_op[1] == 0 && last_op[2] == 0 {
+						temp_values = temp_buffer.clone();
+						last_op[1] = 17;
+					} else if last_op[0] == 29 && last_op[1] == 17 {
+						if last_op[2] == 0 && (temp_values == String::new() || 
+							temp_values == "") {
+								temp_values = temp_buffer.clone();
+							}
+						let t_em_p: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
+						//println!("t_em_p -> {}", t_em_p.clone());
+						if t_em_p == 33 {
+						
+							let insert_to: usize = self.value_buffer.len() - last_op[2];
+							// pub fn insert(&mut self, index: usize, element: T)
+							temp_values.push('.');
+							temp_values += last_op[2].clone().to_string().as_str();
+							self.object_buffer.insert(insert_to, (temp_values, 4));
+							self.value_buffer.insert(insert_to, "".to_string());
+							//last_op[1] = 17; // ставим в некуда
+							
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+							
+						} /*else if t_em_p == 17 { 
+							внизу на всякий стоит. зря я парюсь
+						} */else {
+							last_op[1] = t_em_p.clone();
+							drop(t_em_p);
+							temp_buffer = String::new();
+						}
+						
 					} else { continue; }					 
 				} else if ch == '\n' {
 					// код осуществляющий работу
@@ -627,8 +721,14 @@ pub mod Language{
 						temp_name = String::new();
                     } else if last_op[0] == 21 && last_op[1] == 0 && last_op[2] == 0 {
                         { // print
-                            let t = temp_buffer.as_str().trim();
-                            for i in 0..self.object_buffer.len(){
+                            let t: String = temp_buffer.as_str().trim().to_string();
+							
+							let a = match self.get_value(t) { 
+								Ok(A) => { A },
+								Err(e) => { "" },
+							};
+							println!("{}", a);
+                            /*for i in 0..self.object_buffer.len(){
                                 if t == self.object_buffer[i].0.as_str(){
                                     if self.object_buffer[i].1 != 0 {
                                         println!("{}", self.value_buffer[i]);
@@ -647,7 +747,7 @@ pub mod Language{
                                     }
                                     break;
                                 }
-                            }
+                            }*/
                         }
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                         temp_buffer = String::new();
@@ -655,7 +755,57 @@ pub mod Language{
 						temp_values = String::new();
 						temp_name = String::new();
                         //return 0;
-                    } /*else if last_op[2] == 16 {
+                    } else if last_op[0] == 24 && last_op[1] == 17 && last_op[2] == 0 {
+						temp_buffer += ".0";
+						self.object_buffer.push((temp_buffer, 3));
+						self.value_buffer.push(String::new());
+						
+						
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+					} else if last_op[0] == 29 && last_op[1] != 17 { // variable
+						last_op[2] += 1;
+						self.object_buffer.push((temp_buffer.clone(), last_op[1]));
+						self.value_buffer.push(temp_name.clone());
+						last_op[1] = 17;
+						temp_buffer = String::new();
+						// last_op[1] <- тип поля
+						// last_op[2] <- длинна структуры
+						//let mut temp_values - имя структуры
+						//let mut temp_name   - значение по умолчанию
+						//let mut temp_buffer - имя поля
+						
+						//object_buffer: Vec<(String, usize)>, // наименования объектов // (name, type) 
+						// 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
+						//value_buffer: Vec<String>, // значения 
+					} else if last_op[0] == 29 && last_op[1] == 17 {
+						let t_em_p: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
+						//println!("t_em_p -> {}", t_em_p.clone());
+						if t_em_p == 33 {
+						
+							let insert_to: usize = self.value_buffer.len() - last_op[2];
+							// pub fn insert(&mut self, index: usize, element: T)
+							temp_values.push('.');
+							temp_values += last_op[2].clone().to_string().as_str();
+							self.object_buffer.insert(insert_to, (temp_values, 4));
+							self.value_buffer.insert(insert_to, "".to_string());
+							//last_op[1] = 17; // ставим в некуда
+							
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+							
+						}
+					} else {
+						continue;
+					}
+					
+					/*else if last_op[2] == 16 {
 						last_op[2] = 0; continue;
 					}*/
 				} /*else if ch == ';' {
@@ -664,7 +814,8 @@ pub mod Language{
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
 				match action {					// self.object_buffer (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 					17 => { 
-						if (ch == ' ' || ch == '\t' || ch == '\n') && last_op[1] != 15 { continue; } // обработка происходит наверху. Тут на всякий случай стоит. 
+						if (ch == ' ' || ch == '\t' ) && last_op[1] != 15 { continue; } // обработка происходит наверху. Тут на всякий случай стоит. 
+						// if ch == '\n' { panic!("PARSING ERROR CODE 692."); } // ПРОТЕСТИРОВАТЬ
 						if last_op[0] == 1 && last_op[1] == 0 && last_op[2] == 0 {
 							//let action_char: usize = Words::get_action_lite(self.words.clone(), ch.to_string());
 							match ch {
@@ -696,7 +847,7 @@ pub mod Language{
 									continue;
 								},
 								_ => {
-									temp_buffer.push(ch);// включает обработку на имя (типо после имени сразу может быть '{' и т.п.)
+									temp_buffer.push(ch);// включает обработку на имя (после имени сразу может быть '{' и т.п.)
 								},
 							}
 							//}						
@@ -795,7 +946,11 @@ pub mod Language{
                                         last_op[0] = 17; last_op[1] = 15;
                                     }
                                 }, 
-							    _ => { temp_buffer.push(ch.clone()); },
+							    _ => { 
+									if ch == '\n' { } else {
+										temp_buffer.push(ch.clone()); 
+									}
+								},
                             }
 						}
 						/*else if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {

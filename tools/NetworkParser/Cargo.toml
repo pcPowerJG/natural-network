@@ -1,0 +1,7 @@
+[package]
+name = "NetworkParser"
+version = "0.1.0"
+authors = ["pokemon"]
+edition = "2018"
+
+[dependencies]

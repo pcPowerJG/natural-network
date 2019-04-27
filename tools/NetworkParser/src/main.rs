@@ -267,15 +267,21 @@ impl LayerNet {
 pub struct LogicalSheme {
 	variables_: Vec<Vec<BufferNet>>, //[variables][step] // обращение: [step].[z][x].[y] 
 	// 											                        [шаг].[группа][x].[y]
+	to_nav_map: Vec<ToNavMap>,
 	variables_name: Vec<String>,
 	//variables_val : Vec<usize>,
 	words: Vec<String>,
 }
 pub struct ToNavMap {
-	navigation_on_separate_lines: Vec<Vec<usize>>, // это индекс родителя (пуповина сына) 
+	navigation_on_separate_lines: Vec<Vec<usize>>, // навигация по отдельным линиям
+	// это индекс родителя (пуповина сына) 
 	// внутри шага [step] 
-	// для каждого z [step][z]
+	// для каждого z [step][z]	
+}
+impl ToNavMap {
+	pub fn add<'a>(&mut self, arg: &'a str, value: usize ){
 
+	}
 }
 impl LogicalSheme {
 	pub fn search_var(&self, text: String)-> Result<usize, ()>{
@@ -317,7 +323,12 @@ impl LogicalSheme {
 			"main".to_string(),//1 // точка входа
 			"->".to_string(),//2   // след. шаг
 		];
-		LogicalSheme { variables_: Vec::new(), variables_name: Vec::new(), words: words }
+		LogicalSheme { 
+			variables_: Vec::new(), 
+			variables_name: Vec::new(), 
+			to_nav_map: Vec::new(), 
+			words: words 
+		}
 	}
 	pub fn parser<'a>(&mut self, mut line_: &'a str ){
 		let line = trim(line_.to_string(), "\t ");
@@ -344,11 +355,11 @@ impl LogicalSheme {
 		let mut y_count: usize = 0;		         	  			  // тут число входов
 		let mut temp_name_variable: String = "".to_string(); 	  // тут временное имя переменной
 		let mut variable_index: usize = 0;			  			  // индекс переменной
-		let mut last_op: [u8; 3] = [0; 3];
+		//let mut last_op: [u8; 3] = [0; 3];
 		
-		let mut value_in_z: Vec<usize>	      = Vec::new(); // а тут все значения для Z (иксы)
+		let mut value_in_z: Vec<usize> = Vec::new(); // а тут все значения для Z (иксы)
 		
-		let mut to_z_navigation: Vec<(usize)> = Vec::new(); // навигация по z
+		let mut to_z_navigation: usize = 0; // навигация по z
 					// где последний элемент - это z в котором сейчас работает,
 					// то есть если такая строка '300,300->300,300|300,300'
 					// то вначале будет первый зет до разделителя группы, 
@@ -375,7 +386,8 @@ impl LogicalSheme {
 			if comment && ch == '\n' { comment = false; }
 			if comment { continue; }
 			// не забудь выделить переменную под хранение [y] и не забывай передавать [x]
-			match ch {				
+			match ch {	
+				'\''=> { comment = true; },			
 				':' => { 
 					//variable = true;
 					temp_name_variable = buffer_text.clone();
@@ -400,35 +412,35 @@ impl LogicalSheme {
 						let len_: usize = self.variables_[variable_index].len();
 						self.variables_[variable_index].push(BufferNet::new_empty());
 						//BufferNet::new_empty
-						// value_in_z: Vec<usize>	      = Vec::new(); // а тут все значения для Z (иксы)
-
-						// to_z_navigation: Vec<(usize)> = Vec::new(); // навигация по z
-						if to_z_navigation.len() != 1 {
-							let mut z_to: usize = 0;
-							for z in 0..to_z_navigation.len() {
-								//value_in_z  -> тут все иксы
-
-								// [x, h, to z]
-								// где индекс - иксы, [h] - глубина, [to z] - z к которому относится
-								let value_ls: usize = to_z_navigation[z].clone();
-
-								//let x_s: usize = value_in_z[]
-								
-								/*let x_: usize = match buffer_text.trim().parse::<usize>() {
-									Ok(A) => { A },
-									Err(e)=> { panic!("значение количества [x] должно быть числовым."); 0 },
-								}*/
-
-								//if 
-								// короче нарисуй схему, так нагляднее.
-								//self.заполнить();
-								z_to += 1;
-							}
-						}
+						value_in_z = Vec::new();
+						to_z_navigation = 0;
 						buffer_text = "".to_string();
 					}
+				},				
+				',' => {
+					//let len_: usize = to_z_navigation.len();
+					//group = true;
+					// •••
+					let value_: usize = match buffer_text.trim().parse::<usize>() {
+						Ok(A)=>{ A },
+						Err(e)=>{ panic!("не получилось прочитать число около запятой."); 0 },
+					};
+					value_in_z.push(value_.clone());
+					//continue;
+					//обнаружили
 				},
-				'\''=> { comment = true; },
+				'|' => { 
+					let len_: usize = self.variables_[variable_index].len();
+					value_in_z.insert(0, y_count.clone());
+					self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
+					// запись в Map
+
+					value_in_z = Vec::new();
+					// по слоям
+				},
+				' ' | '\t'=> {
+					continue;
+				},
 				'{' => { 
 					open_br = true; 
 					buffer_text = "".to_string();
@@ -440,19 +452,6 @@ impl LogicalSheme {
 				},
 				']' => {
 					close_br = true;
-				},
-				'|' => { 
-					// по слоям
-				},
-				',' => {
-					let len_: usize = to_z_navigation.len();
-					//group = true;
-					// •••
-					continue;
-					//обнаружили
-				},
-				' ' | '\t'=> {
-					continue;
 				},
 				_ => {					
 					buffer_text.push(ch);

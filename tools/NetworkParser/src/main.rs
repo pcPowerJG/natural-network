@@ -44,10 +44,47 @@ impl Neyron {
 pub struct BufferNet {
 	layers: Vec<Vec<LayerNet>>, // 			 						   [z][x]
 	//name: String,
-	layers_in_layers: Vec<BufferNet>,
-	on_layers_index_to_go_layers_in_layers: Vec<usize>
+	layers_in_layers: Vec<BufferNet>, // на каждый [z] свой 
+	//on_layers_in_layers_len: Vec<usize> // глубина
 }
 impl BufferNet {
+	pub fn add_to_depth(&mut self, mut depth_map: Vec<usize>){
+		let len: usize = depth_map.clone().len();
+		// первый - колво иксов
+		// второй - колво игриков
+		// третий - последний depth, [z],  точнее
+		if len > 3 {
+			let index: usize = depth_map[len - 1].clone();
+			depth_map.remove(len - 1);
+			if self.layers_in_layers.len() > index {
+				self.layers_in_layers[index].add_to_depth(depth_map.clone());
+			} else {
+				let len_: usize = self.layers_in_layers.len();
+				let index = index + 1;
+				for i in len_..index {
+					self.layers_in_layers.push(BufferNet::new_empty());
+				} 
+				self.layers_in_layers[index].add_to_depth(depth_map.clone());
+			}
+			//self.add_to_depth(depth_map.clone());
+		} else {
+			let x_count: usize = depth_map[0];
+			let y_count: usize = depth_map[1];
+			let z: usize = depth_map[2];
+			if self.layers.len() > z {
+				for i in 0..x_count {
+					self.layers[z].push(LayerNet::new(y_count.clone()));
+				}
+			} else if self.layers.len() == z {
+				self.layers.push(Vec::new());
+				for i in 0..x_count {
+					self.layers[z].push(LayerNet::new(y_count.clone()));
+				}
+			} else {
+				panic!("неопределённая ошибка в add_to_depth()");
+			}
+		}
+	}
 	pub fn new(x: usize, y: usize)->BufferNet{
 		//LayerNet::new(y: usize)->LayerNet
 		let mut lyrs: Vec<LayerNet> = Vec::new();
@@ -59,7 +96,14 @@ impl BufferNet {
 		BufferNet {
 			layers: lrss, 
 			layers_in_layers: Vec::new(),
-			on_layers_index_to_go_layers_in_layers: Vec::new()
+			//on_layers_in_layers_len: Vec::new()
+		}
+	}
+	pub fn new_empty()->BufferNet{
+		BufferNet {
+			layers: Vec::new(), 
+			layers_in_layers: Vec::new(),
+			//on_layers_in_layers_len: Vec::new()
 		}
 	}
 	pub fn add<'a>(&mut self, arg: &'a str, value_x: Vec<usize>) {
@@ -95,22 +139,19 @@ impl BufferNet {
 			"nzx" => {
 				let len_: usize = value_x.len();
 				if len_ == 0 {
-					panic!("попытка создать [z] с неинициализированными [x], возможно пропущен знак?");
+					panic!("попытка создать [z] с неинициализированными [y]");
 				}
-				if len_ < 2 {
-					panic!("попытка созать [z] не указывая [x] и [y]");
-				}
-				let x_count: usize = value_x[0].clone();
-				let y_count: usize = value_x[1].clone();
-				for i in 2..len_ {
+				let y_count: usize = value_x[0].clone();
+				//let y_count: usize = value_x[1].clone();
+				for i in 1..len_ {
 					let mut tmp: Vec<LayerNet> = Vec::new();
-					for _ in 0..x_count.clone() {
+					for _ in 0..value_x[i].clone() {
 						tmp.push(LayerNet::new(y_count.clone()));
 					}
 					self.layers.push(tmp);
 				}
 			}, // new z and x
-			   // длина массива - число z, внутри него иксы. первый элемент - количество Х, второй - количество Y
+			   // длина массива - число z, внутри него иксы. первый элемент - количество Y
 			"tzx" => {
 				let len_: usize = value_x.len();
 				if len_ == 0 {
@@ -158,12 +199,43 @@ impl BufferNet {
 				if indx_z >= self.layers.len() {
 					panic!("попытка добавить [z] in [z] в несуществующий [z].");
 				}
-				self.on_layers_index_to_go_layers_in_layers.push(indx_z.clone());
+				//self.on_layers_in_layers_len[indx_z] += 1;
 				//pub fn new(x: usize, y: usize)->BufferNet{
 				self.layers_in_layers.push(BufferNet::new(count_x.clone(), count_y.clone()));
 			}, // add z in z
 			   // добавить в layers_in_layers зет, 
 			   // порядковый номер зета указан в первом элементе вектора
+			"azizd"=>{
+				let len_: usize = value_x.len();
+				if len_ == 0 {
+					panic!("попытка изменить [z] in [z] не указывая индекса");
+				}
+				if len_ == 1 {
+					panic!("попытка изменить [z] in [z] не указывая количество [x]");
+				}
+				if len_ == 2 {
+					panic!("попытка изменить [z] in [z] не указывая количество [y]");
+				}
+				if len_ == 3 {
+					panic!("попытка изменить [z] in [z], не указывая глубину [z] in [z]");
+				}
+				self.add_to_depth(value_x.clone());
+				/*if len_ > 4 {
+					panic!("попытка изменить [z] in [z]. слишком много аргументов [in z][x][y][depth][>4]");
+				}
+				let indx_z: usize  = value_x[0].clone();
+				let count_x: usize = value_x[1].clone();
+				let count_y: usize = value_x[2].clone();
+				let depth_: usize  = value_x[3].clone();*/
+				/*layers_in_layers: Vec<BufferNet>,
+	on_layers_index_to_go_layers_in_layers: Vec<usize>*/
+				/*if indx_z >= self.layers.len() {
+					panic!("попытка добавить [z] in [z] в несуществующий [z].");
+				}*/
+
+			}, // add z in z to depth
+			   //
+			   //
 			_ => {
 				panic!("ошибка в передаче строкового параметра");
 			},
@@ -199,7 +271,12 @@ pub struct LogicalSheme {
 	//variables_val : Vec<usize>,
 	words: Vec<String>,
 }
+pub struct ToNavMap {
+	navigation_on_separate_lines: Vec<Vec<usize>>, // это индекс родителя (пуповина сына) 
+	// внутри шага [step] 
+	// для каждого z [step][z]
 
+}
 impl LogicalSheme {
 	pub fn search_var(&self, text: String)-> Result<usize, ()>{
 		let mut indx: usize = 0;
@@ -263,21 +340,25 @@ impl LogicalSheme {
 		//let mut layer_len: usize = 0;
 		//let mut layer_type: u8 = 0;
 		//let mut steps: 
-		let mut buffer_text0: String = "".to_string();    // тут обычный буффер
-		let mut buffer_text1: String = "".to_string();    // тут число входов
-		let mut buffer_text2: String = "".to_string(); 	  // тут временное имя переменной
-		let mut variable_index: usize = 0;			      // индекс переменной
+		let mut buffer_text: String = "".to_string(); 			  // тут обычный буффер
+		let mut y_count: usize = 0;		         	  			  // тут число входов
+		let mut temp_name_variable: String = "".to_string(); 	  // тут временное имя переменной
+		let mut variable_index: usize = 0;			  			  // индекс переменной
 		let mut last_op: [u8; 3] = [0; 3];
 		
-		let mut value_in_z: Vec<usize>	    = Vec::new(); // а тут все значения для Z
+		let mut value_in_z: Vec<usize>	      = Vec::new(); // а тут все значения для Z (иксы)
 		
-		let mut to_z_navigation: Vec<usize> = Vec::new(); // навигация по z
-														  // где последний элемент - это z в котором сейчас работает,
-														  // то есть если такая строка '300,300->300,300|300,300'
-														  // то вначале будет первый зет до разделителя группы, 
-														  // 300 будет положено в value_in_z, на разделителе будет создан z в z
-														  // а второй зет будет после
-														  // это позволит создавать сложные архитектуры в одну строку
+		let mut to_z_navigation: Vec<(usize)> = Vec::new(); // навигация по z
+					// где последний элемент - это z в котором сейчас работает,
+					// то есть если такая строка '300,300->300,300|300,300'
+					// то вначале будет первый зет до разделителя группы, 
+					// 300 будет положено в value_in_z, на разделителе будет создан z в z
+
+					// [x, h, to z]
+					// где индекс - иксы, [h] - глубина для [to z], [to z] - z к которому относится
+
+					// а второй зет будет после
+					// это позволит создавать сложные архитектуры в одну строку
 		// шаги
 		//let mut networks: Vec<(usize, usize, usize, usize, usize)> = Vec::new();
 		//let mut network_size: usize = 0;
@@ -286,30 +367,76 @@ impl LogicalSheme {
 
 		let mut last_char: char = '\0';
 		for ch in line.chars(){
+// self
+//variables_: Vec<Vec<BufferNet>>, //[variables][step] // обращение: [step].[z][x].[y] 
+// 											                        [шаг].[группа][x].[y]
+//variables_name: Vec<String>,
+
 			if comment && ch == '\n' { comment = false; }
 			if comment { continue; }
 			// не забудь выделить переменную под хранение [y] и не забывай передавать [x]
 			match ch {				
 				':' => { 
 					//variable = true;
-					buffer_text2 = buffer_text0.clone();
-					variable_index = self.add_var(buffer_text0.clone());
-					buffer_text0 = "".to_string();
+					temp_name_variable = buffer_text.clone();
+					variable_index = self.add_var(buffer_text.clone());
+					buffer_text = "".to_string();
 				},
 				'-' => {
 					next_tire = true;
-					if buffer_text1 == "".to_string() {
-						
-					}
+					//buffer_text = "".to_string();					
 				},
 				'>' => {
-					
+					if next_tire {
+						if y_count == 0 {
+							y_count = match buffer_text.trim().parse::<usize>() {
+								Ok(A) => { A },
+								Err(e)=> { panic!("значение количества входов должно быть числовым."); 0 },
+							};
+							self.variables_[variable_index] = Vec::new();
+							self.variables_[variable_index].push(BufferNet::new(1, y_count.clone()));
+							continue;
+						}
+						let len_: usize = self.variables_[variable_index].len();
+						self.variables_[variable_index].push(BufferNet::new_empty());
+						//BufferNet::new_empty
+						// value_in_z: Vec<usize>	      = Vec::new(); // а тут все значения для Z (иксы)
+
+						// to_z_navigation: Vec<(usize)> = Vec::new(); // навигация по z
+						if to_z_navigation.len() != 1 {
+							let mut z_to: usize = 0;
+							for z in 0..to_z_navigation.len() {
+								//value_in_z  -> тут все иксы
+
+								// [x, h, to z]
+								// где индекс - иксы, [h] - глубина, [to z] - z к которому относится
+								let value_ls: usize = to_z_navigation[z].clone();
+
+								//let x_s: usize = value_in_z[]
+								
+								/*let x_: usize = match buffer_text.trim().parse::<usize>() {
+									Ok(A) => { A },
+									Err(e)=> { panic!("значение количества [x] должно быть числовым."); 0 },
+								}*/
+
+								//if 
+								// короче нарисуй схему, так нагляднее.
+								//self.заполнить();
+								z_to += 1;
+							}
+						}
+						buffer_text = "".to_string();
+					}
 				},
 				'\''=> { comment = true; },
-				'{' => { open_br = true; },
+				'{' => { 
+					open_br = true; 
+					buffer_text = "".to_string();
+				},
 				'}' => { close_br = true;},
-				'[' => {
-					open_br = true;
+				'[' => { 
+					open_br = true; 
+					buffer_text = "".to_string();
 				},
 				']' => {
 					close_br = true;
@@ -324,8 +451,11 @@ impl LogicalSheme {
 					continue;
 					//обнаружили
 				},
+				' ' | '\t'=> {
+					continue;
+				},
 				_ => {					
-					buffer_text0.push(ch);
+					buffer_text.push(ch);
 				},
 			}			
 			if program { last_char = ch; }

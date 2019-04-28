@@ -277,10 +277,32 @@ pub struct ToNavMap {
 	// это индекс родителя (пуповина сына) 
 	// внутри шага [step] 
 	// для каждого z [step][z]	
+
+	//[step][порядковый номер z текущий] его значение -> на какой порядковый отсылается
 }
 impl ToNavMap {
-	pub fn add<'a>(&mut self, arg: &'a str, value: usize ){
-
+	pub fn add_and_new_step(&mut self, value: usize){
+		let len: usize = self.navigation_on_separate_lines.len();
+		self.navigation_on_separate_lines.push(Vec::new());
+		if len != 0 {
+			self.navigation_on_separate_lines[len - 1].push(value.clone());
+		} else {
+			self.navigation_on_separate_lines[0].push(value.clone());
+		}
+	}
+	pub fn add_to_step(&mut self, step: usize, value: usize){		
+		let len: usize = self.navigation_on_separate_lines.len();
+		println!("len: {}", len.clone());
+		if step == len {
+			self.add_and_new_step(value.clone());
+		} else if step > len {
+			panic!("попытка добавить значение в карту. шага не существует.");
+		} else {
+			self.navigation_on_separate_lines[step].push(value);
+		}
+	}
+	pub fn new()->ToNavMap{
+		ToNavMap { navigation_on_separate_lines: Vec::new() }
 	}
 }
 impl LogicalSheme {
@@ -295,7 +317,7 @@ impl LogicalSheme {
 	pub fn add_var(&mut self, var_name: String)->usize{
 		self.variables_.push(Vec::new());
 		self.variables_name.push(var_name);
-		self.variables_name.len()
+		self.variables_name.len() - 1
 	}
 	pub fn edit_var(&mut self, var_name: String, var_value: String)->bool{
 		
@@ -330,6 +352,44 @@ impl LogicalSheme {
 			words: words 
 		}
 	}
+	pub fn debug(&self){
+		println!("variables count: {}", self.variables_.len());
+					for i in 0..self.variables_.len(){
+						println!("step count[ {} ] in variables {}", 
+																	self.variables_[i].len(),
+																	self.variables_name[i].clone());
+						for st in 0..self.variables_[i].len() {
+							let l: usize = self.variables_[i][st].layers.len();
+							println!("[z]: {}", l.clone());
+							for k in 0..l {
+								let l_: usize = self.variables_[i][st].layers[k].len();
+								println!("[x]: {}", l_.clone());
+								for m in 0..l_.clone() {
+									println!("[y]: {}", self.variables_[i][st].layers[k][m].layer.len());
+								}
+							}						
+						}
+						println!("---------------map----------------");
+						if self.to_nav_map.len() == 0 {
+							println!("self.to_nav_map == 0");
+							continue;
+						}
+						let len__s: usize = self.to_nav_map[i].navigation_on_separate_lines.len();
+						if len__s == 0{
+							println!("self.navigation_on_separate_lines.len() = 0");
+						} else { 
+							println!("self.navigation_on_separate_lines.len() = {}", len__s.clone());
+						}
+						for k in 0..len__s {
+							let to____z_: usize = self.to_nav_map[i].navigation_on_separate_lines[k].len();
+							for l in 0..to____z_.clone(){
+								println!("[z]: [to_z]\n[ {} ]: [ {} ]", k.clone(), 
+										self.to_nav_map[i].navigation_on_separate_lines[k][l].clone());
+							}
+						}
+					}
+					println!("-----------debug end---------------")
+	}
 	pub fn parser<'a>(&mut self, mut line_: &'a str ){
 		let line = trim(line_.to_string(), "\t ");
 
@@ -359,17 +419,10 @@ impl LogicalSheme {
 		
 		let mut value_in_z: Vec<usize> = Vec::new(); // а тут все значения для Z (иксы)
 		
-		let mut to_z_navigation: usize = 0; // навигация по z
-					// где последний элемент - это z в котором сейчас работает,
-					// то есть если такая строка '300,300->300,300|300,300'
-					// то вначале будет первый зет до разделителя группы, 
-					// 300 будет положено в value_in_z, на разделителе будет создан z в z
-
-					// [x, h, to z]
-					// где индекс - иксы, [h] - глубина для [to z], [to z] - z к которому относится
-
-					// а второй зет будет после
-					// это позволит создавать сложные архитектуры в одну строку
+		let mut step_value: usize = 0;					  // навигация по шагам
+		//let mut to_z_navigation: Vec<usize> = Vec::new(); // навигация по z
+		let mut index_last_z: usize = 0;
+		let mut index_this_z: usize = 0;
 		// шаги
 		//let mut networks: Vec<(usize, usize, usize, usize, usize)> = Vec::new();
 		//let mut network_size: usize = 0;
@@ -386,12 +439,23 @@ impl LogicalSheme {
 			if comment && ch == '\n' { comment = false; }
 			if comment { continue; }
 			// не забудь выделить переменную под хранение [y] и не забывай передавать [x]
+			println!("char: {}", ch.clone());
+			println!("step: {}", step_value.clone());
+			println!("index_last_z: {}\nindex_this_z: {}\ny_count: {}\nnext_tire: {}", 
+			index_last_z.clone(), index_this_z.clone(), y_count.clone(), next_tire.clone());
+			println!("buffer_text: {}\nvalue_in_z: {:?}", buffer_text.clone(), value_in_z.clone());
+			println!("---------------------------------------");
 			match ch {	
+				'D' => { 
+					self.debug();
+				},
+				'e' => { return; },
 				'\''=> { comment = true; },			
 				':' => { 
 					//variable = true;
 					temp_name_variable = buffer_text.clone();
 					variable_index = self.add_var(buffer_text.clone());
+					self.to_nav_map.push(ToNavMap::new());
 					buffer_text = "".to_string();
 				},
 				'-' => {
@@ -407,14 +471,44 @@ impl LogicalSheme {
 							};
 							self.variables_[variable_index] = Vec::new();
 							self.variables_[variable_index].push(BufferNet::new(1, y_count.clone()));
+							self.variables_[variable_index].push(BufferNet::new_empty());
+							//self.to_nav_map[variable_index] = ToNavMap::new();
+							//println!("input value_in_z: {:?}", value_in_z.clone());
+							value_in_z = Vec::new();
+							next_tire = false;
+							buffer_text = "".to_string();	
 							continue;
 						}
+						if index_last_z != 0 {
+							for _ in 0..index_this_z.clone() {
+								self.to_nav_map[variable_index].add_to_step(step_value, index_last_z.clone());
+							}
+							//println!("")
+						} else {
+							self.to_nav_map[variable_index].add_to_step(step_value, 0);
+						}
+						if index_this_z != 0 {
+							let value_: usize = match buffer_text.trim().parse::<usize>() {
+								Ok(A)=>{ A },
+								Err(e)=>{ panic!("не получилось прочитать число около запятой."); 0 },
+							};
+							buffer_text = "".to_string();				
+							index_this_z += 1;							
+							value_in_z.push(value_.clone());
+						}
 						let len_: usize = self.variables_[variable_index].len();
+						value_in_z.insert(0, y_count.clone());
+						println!("step value_in_z([y][x][x]): {:?}", value_in_z.clone());
+						self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
+						
 						self.variables_[variable_index].push(BufferNet::new_empty());
 						//BufferNet::new_empty
+						// тут не просто обнуление!
 						value_in_z = Vec::new();
-						to_z_navigation = 0;
+						//to_z_navigation = Vec::new();
 						buffer_text = "".to_string();
+						step_value += 1;
+						next_tire = false;
 					}
 				},				
 				',' => {
@@ -425,18 +519,28 @@ impl LogicalSheme {
 						Ok(A)=>{ A },
 						Err(e)=>{ panic!("не получилось прочитать число около запятой."); 0 },
 					};
-					value_in_z.push(value_.clone());
-					//continue;
-					//обнаружили
+					buffer_text = "".to_string();				
+					index_this_z += 1;							
+					value_in_z.push(value_.clone());					
 				},
 				'|' => { 
 					let len_: usize = self.variables_[variable_index].len();
 					value_in_z.insert(0, y_count.clone());
 					self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
-					// запись в Map
+					// step_value: usize 		// навигация по шагам
+					// to_z_navigation:       ; // навигация по z
+					for _ in 0..index_this_z.clone() {
+						self.to_nav_map[variable_index].add_to_step(step_value, index_last_z.clone());
+					}
+					/*
+						pub fn add_and_new_step(&mut self, value: usize){
+						pub fn add_to_step(&mut self, step: usize, value: usize){
+					*/
+					//to_nav_map: Vec<ToNavMap>,
 
-					value_in_z = Vec::new();
-					// по слоям
+					// запись в Map
+					index_last_z += 1;					
+					index_this_z = 0;
 				},
 				' ' | '\t'=> {
 					continue;
@@ -483,7 +587,10 @@ fn trim<'a>(text: String, to_: &'a str)->String{
 fn main() {
     println!("Hello, world!");
 	let mut t = LogicalSheme::new();
-    t.parser("
+	t.parser("
+	' comment
+	main: 5->5,5->De");
+    /*t.parser("
             ' ThGorge Parser Ver: 0.01
             ' It's a cool network
             
@@ -499,6 +606,6 @@ fn main() {
 			'		200	200--|
 			'	300		
 			'		300	100 out
-                ");
+                ");*/
 }
 

@@ -1,17 +1,17 @@
+
 extern crate rand; // 0.6.5
 use rand::Rng;
 
-
 pub struct Neyron{
     weight: Vec<f32>,
-    inputs: Vec<f32>,
+    //inputs: Vec<f32>,
     learn_speed: f32,
  
     result: f32,
  
 }
 impl Neyron {
-	pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron{
+	pub fn new(weight: usize, learn_speed: f32)->Neyron{
 		let mut weight_: Vec<f32> = Vec::new();
 		
 		for i in 0..weight{
@@ -19,26 +19,149 @@ impl Neyron {
 		    //if rng.gen() { // random bool
 		    let mut f: f32 = rng.gen::<f32>();
 		    if f < 0.0 {
-			while f < -1.0 {
-			    f /= 10.0;
-			}
-		    } else if f > 0.0 {
-			while f > 1.0 {
-			    f /= 10.0;
-			}
+				while f < -1.0 {
+					f /= 10.0;
+				}
+			} else if f > 0.0 {
+				while f > 1.0 {
+					f /= 10.0;
+				}
 		    } else {
-			f = -0.5;
+				f = -0.5;
 		    }
 		    weight_.push(f);
+		}
+		/*let mut inputs_: Vec<f32> = Vec::new();
+		for i in 0..inputs {
+			inputs_.push(0.0);
+		}*/
+		Neyron { 
+			weight: weight_, 
+			//inputs: inputs_, 
+			learn_speed: learn_speed, 
+			result: 0.0 
+		}
+	}
+	pub fn new_input_neyron(inputs: usize)->Neyron {
+		let mut weight_: Vec<f32> = Vec::new();
+		let learn_speed: f32 = 1.0;
+		for i in 0..inputs{		    
+		    //let f: f32 = 1.0;		    
+		    weight_.push(1.0);
 		}
 		let mut inputs_: Vec<f32> = Vec::new();
 		for i in 0..inputs {
 			inputs_.push(0.0);
 		}
-		Neyron { weight: weight_, inputs: inputs_, learn_speed: learn_speed, result: 0.0 }
+		Neyron { 
+			weight: weight_,
+			//inputs: inputs_,
+			learn_speed: learn_speed, 
+			result: 0.0 
+		}
 	}
 	pub fn clone(&self)->Neyron{ 
-		Neyron { weight: self.weight.clone(), inputs: self.inputs.clone(), learn_speed: self.learn_speed.clone(), result: self.result.clone() } 
+		Neyron { 
+			weight: self.weight.clone(), 
+			//inputs: self.inputs.clone(), 
+			learn_speed: self.learn_speed.clone(), 
+			result: self.result.clone() 
+		} 
+	}
+	pub fn on_error(&mut self, tr_value: Vec<f32>) {
+		
+	}
+	pub fn answer(&self) -> f32 {
+		self.result.clone()
+	}
+	// fn() and get_set result
+	pub fn input_(&mut self, inputs: Vec<f32>)->f32{
+		if inputs.len() > self.weight.clone().len() {
+			println!("warning: input information > weight.len()");
+			let len_: usize = inputs.len() + 1;
+			let len_w: usize= self.weight.clone().len();
+			for _ in len_w..len_ {
+				let mut rng = rand::thread_rng();
+				//if rng.gen() { // random bool
+				let mut f: f32 = rng.gen::<f32>();
+				if f < 0.0 {
+					while f < -1.0 {
+						f /= 10.0;
+					}
+				} else if f > 0.0 {
+					while f > 1.0 {
+						f /= 10.0;
+					}
+				} else {
+					f = -0.5;
+				}
+				self.weight.push(f);
+			}
+		}
+		let mut result_: f32 = 0.0;
+		//let one: f32 = 1.0;
+		
+
+		for i in 0..inputs.len() {
+			// f32
+			// pub fn powi(self, n: i32) -> f32
+			// pub fn powf(self, n: f32) -> f32
+			// pub fn sqrt(self) -> f32
+			// pub fn exp(self) -> f32			
+			/*	
+				//Returns e^(self), (the exponential function).
+				let one = 1.0f32;
+				// e^1
+				let e = one.exp();
+				println!("e: {}", e);
+				// > "e: 2.7182817"
+			*/
+			result_ += self.weight[i].clone() * inputs[i];
+		} 
+		let exp: f32 = (result_.clone() * -1.0).exp();
+		if exp.clone().is_infinite(){
+			panic!("результат возведения в степень e^-x не может быть бесконечностью");
+		} 
+		if exp.clone().is_nan(){
+			panic!("результат возведения в степень e^-x не может быть NaN");
+		}
+		result_ = 1.0/(1.0+exp);
+		// 	  1
+		//-----------
+		//		 (-x)
+		//	1 + e
+		self.result = result_.clone();
+		result_
+	}
+	pub fn get_result(&self)->f32 { self.result.clone() }	
+}
+pub struct LayerNet {
+	layer: Vec<Neyron>, // нейроны в слою // 						   [y]
+}
+impl LayerNet {
+	pub fn new(count: usize)->LayerNet{
+		let mut layer_: Vec<Neyron> = Vec::new();
+		for i in 0..count.clone() {
+			layer_.push(Neyron::new(count.clone(), 0.001));
+			//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron
+		}
+		LayerNet { layer: layer_ }
+	}
+	pub fn new_inputs_layer(count: usize)->LayerNet{
+		let mut layer_: Vec<Neyron> = Vec::new();
+		for i in 0..count.clone() {
+			layer_.push(Neyron::new_input_neyron(count.clone()));
+			//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron
+		}
+		LayerNet { layer: layer_ }
+	}
+	pub fn clone(&self)->LayerNet {
+		// let cl: Vec<Neyron> = self.layer;
+		let mut r: Vec<Neyron> = Vec::new();
+		for item in &self.layer {
+			r.push(item.clone());
+		}
+		LayerNet { layer: r }
 	}
 }
 pub struct BufferNet {
@@ -104,6 +227,17 @@ impl BufferNet {
 			layers: Vec::new(), 
 			layers_in_layers: Vec::new(),
 			//on_layers_in_layers_len: Vec::new()
+		}
+	}
+	pub fn new_input(y: usize)->BufferNet{
+		let mut lyrs: Vec<LayerNet> = Vec::new();
+		let mut lrss: Vec<Vec<LayerNet>> = Vec::new();
+		lyrs.push(LayerNet::new_inputs_layer(y));
+
+		lrss.push(lyrs);
+		BufferNet {
+			layers: lrss, 
+			layers_in_layers: Vec::new(),
 		}
 	}
 	pub fn add<'a>(&mut self, arg: &'a str, value_x: Vec<usize>) {
@@ -242,28 +376,7 @@ impl BufferNet {
 		}
 	}
 }
-pub struct LayerNet {
-	layer: Vec<Neyron>, // нейроны в слою // 						   [y]
-}
-impl LayerNet {
-	pub fn new(count: usize)->LayerNet{
-		let mut layer_: Vec<Neyron> = Vec::new();
-		for i in 0..count.clone() {
-			layer_.push(Neyron::new(count.clone(), count.clone(), 0.001));
-			//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron
-		}
-		LayerNet { layer: layer_ }
-	}
-	
-	pub fn clone(&self)->LayerNet {
-		// let cl: Vec<Neyron> = self.layer;
-		let mut r: Vec<Neyron> = Vec::new();
-		for item in &self.layer {
-			r.push(item.clone());
-		}
-		LayerNet { layer: r }
-	}
-}
+
 pub struct LogicalSheme {
 	variables_: Vec<Vec<BufferNet>>, //[variables][step] // обращение: [step].[z][x].[y] 
 	// 											                        [шаг].[группа][x].[y]
@@ -273,36 +386,94 @@ pub struct LogicalSheme {
 	words: Vec<String>,
 }
 pub struct ToNavMap {
-	navigation_on_separate_lines: Vec<Vec<usize>>, // навигация по отдельным линиям
+	navigation_on_separate_lines: Vec<Vec<Vec<usize>>>, // навигация по отдельным линиям
+	// поправь чтоб робило!
+	//
 	// это индекс родителя (пуповина сына) 
 	// внутри шага [step] 
-	// для каждого z [step][z]	
+	// для каждого z [step][z]
+	// и для каждого [z in z]	
 
-	//[step][порядковый номер z текущий] его значение -> на какой порядковый отсылается
+	//[step][порядковый номер z предыдущий][тут текущие Z] его значение -> на какой порядковый отсылается
 }
-impl ToNavMap {
-	pub fn add_and_new_step(&mut self, value: usize){
-		let len: usize = self.navigation_on_separate_lines.len();
-		self.navigation_on_separate_lines.push(Vec::new());
-		if len != 0 {
-			self.navigation_on_separate_lines[len - 1].push(value.clone());
+impl ToNavMap {	
+	// return add; if != 16 -> can't add element
+	pub fn add_to_step_lastZ_thisZ(&mut self, step: usize , last_z: usize, this_z: usize)->u8{
+		println!("в создание шага пришло:\nstep: [{}]\nlast_z: [{}]\nthis_z: [{}]",
+		step.clone(), last_z.clone(), this_z.clone());
+		if self.navigation_on_separate_lines.len() > step {
+			if self.navigation_on_separate_lines[step].len() > last_z {
+				self.navigation_on_separate_lines[step][last_z].push(this_z);
+			} else {
+				if self.navigation_on_separate_lines[step].len() == last_z {
+					self.navigation_on_separate_lines[step].push(Vec::new());
+					self.navigation_on_separate_lines[step][last_z].push(this_z);
+				} else {
+					return 0;
+				}
+			}
 		} else {
-			self.navigation_on_separate_lines[0].push(value.clone());
-		}
+			return 1;
+		} 16
 	}
-	pub fn add_to_step(&mut self, step: usize, value: usize){		
-		let len: usize = self.navigation_on_separate_lines.len();
-		println!("len: {}", len.clone());
-		if step == len {
-			self.add_and_new_step(value.clone());
-		} else if step > len {
-			panic!("попытка добавить значение в карту. шага не существует.");
-		} else {
-			self.navigation_on_separate_lines[step].push(value);
-		}
+	// return step_id new step
+	pub fn new_step(&mut self)->usize{
+		self.navigation_on_separate_lines.push(Vec::new());
+		self.navigation_on_separate_lines.len() - 1
 	}
 	pub fn new()->ToNavMap{
 		ToNavMap { navigation_on_separate_lines: Vec::new() }
+	}
+	pub fn grouping_according_to_latest_data(&mut self, x: usize, this_z: usize){
+		//let step_l: usize = self.navigation_on_separate_lines.len();
+		let this_step: usize = self.navigation_on_separate_lines.len().clone() - 1;
+		//let 
+		let len_lastStep_lastZ: usize = self.navigation_on_separate_lines[this_step - 1].len();
+		//let 
+		for i in 0..len_lastStep_lastZ {
+			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
+			for k in 0..len_s {
+				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];
+				while self.navigation_on_separate_lines[this_step].len() < (z_ + 1) {
+					self.navigation_on_separate_lines[this_step].push(Vec::new());
+				}				
+				self.navigation_on_separate_lines[this_step][z_].push(this_z);
+			}
+		}
+	}
+	pub fn grouping_according_data_fromHere_toHere(&mut self, from_here: usize, to_here: usize, this_z: usize) {
+		let this_step: usize = self.navigation_on_separate_lines.len().clone() - 1;
+		while self.navigation_on_separate_lines[this_step].len() < (to_here + 1) {
+			self.navigation_on_separate_lines[this_step].push(Vec::new());
+		} 
+		let len_lastStep_lastZ: usize = self.navigation_on_separate_lines[this_step - 1].len();
+		for i in 0..len_lastStep_lastZ {
+			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
+			for k in 0..len_s {
+				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];
+				if z_ >= from_here || z_ == to_here {
+					self.navigation_on_separate_lines[this_step][z_].push(this_z);
+				} else if z_ > to_here {
+					return;
+				}
+			}
+		}
+	}
+	pub fn grouping_according_data_fromHere_toEnd(&mut self, from_here: usize, this_z: usize) {
+		let this_step: usize = self.navigation_on_separate_lines.len().clone() - 1;
+		//let 
+		let len_lastStep_lastZ: usize = self.navigation_on_separate_lines[this_step - 1].len();
+		//let 
+		for i in from_here..len_lastStep_lastZ {
+			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
+			for k in 0..len_s {
+				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];
+				while self.navigation_on_separate_lines[this_step].len() < (z_ + 1) {
+					self.navigation_on_separate_lines[this_step].push(Vec::new());
+				}				
+				self.navigation_on_separate_lines[this_step][z_].push(this_z);
+			}
+		}
 	}
 }
 impl LogicalSheme {
@@ -380,11 +551,16 @@ impl LogicalSheme {
 						} else { 
 							println!("self.navigation_on_separate_lines.len() = {}", len__s.clone());
 						}
-						for k in 0..len__s {
+						for k in 0..len__s { // по шагам
 							let to____z_: usize = self.to_nav_map[i].navigation_on_separate_lines[k].len();
-							for l in 0..to____z_.clone(){
-								println!("[z]: [to_z]\n[ {} ]: [ {} ]", k.clone(), 
-										self.to_nav_map[i].navigation_on_separate_lines[k][l].clone());
+							for l in 0..to____z_.clone(){ // по предыдущим z
+								//for i_ in 0..self.to_nav_map[i].navigation_on_separate_lines[l].len() {
+									for k_ in 0..self.to_nav_map[i].navigation_on_separate_lines[k][l].len() {
+										println!("[step]: [last z] [this z]\n[{}]: [ {} ] [ {} ]", k.clone(), 
+										l.clone(),
+										self.to_nav_map[i].navigation_on_separate_lines[k][l][k_].clone());		
+									}
+								//}								
 							}
 						}
 					}
@@ -412,9 +588,10 @@ impl LogicalSheme {
 		//let mut layer_type: u8 = 0;
 		//let mut steps: 
 		let mut buffer_text: String = "".to_string(); 			  // тут обычный буффер
-		let mut y_count: usize = 0;		         	  			  // тут число входов
+		let mut y_count: usize = 0;	         	  			  	  // тут число входов
 		let mut temp_name_variable: String = "".to_string(); 	  // тут временное имя переменной
 		let mut variable_index: usize = 0;			  			  // индекс переменной
+		let mut union_layer: bool = false;
 		//let mut last_op: [u8; 3] = [0; 3];
 		
 		let mut value_in_z: Vec<usize> = Vec::new(); // а тут все значения для Z (иксы)
@@ -422,6 +599,7 @@ impl LogicalSheme {
 		let mut step_value: usize = 0;					  // навигация по шагам
 		//let mut to_z_navigation: Vec<usize> = Vec::new(); // навигация по z
 		let mut index_last_z: usize = 0;
+		let mut this_z_array: Vec<usize> = Vec::new();
 		let mut index_this_z: usize = 0;
 		// шаги
 		//let mut networks: Vec<(usize, usize, usize, usize, usize)> = Vec::new();
@@ -441,8 +619,8 @@ impl LogicalSheme {
 			// не забудь выделить переменную под хранение [y] и не забывай передавать [x]
 			println!("char: {}", ch.clone());
 			println!("step: {}", step_value.clone());
-			println!("index_last_z: {}\nindex_this_z: {}\ny_count: {}\nnext_tire: {}", 
-			index_last_z.clone(), index_this_z.clone(), y_count.clone(), next_tire.clone());
+			println!("index_last_z: {}\nthis_z_array: {:?}\ny_count: {}\nnext_tire: {}", 
+			index_last_z.clone(), this_z_array.clone(), y_count.clone(), next_tire.clone());
 			println!("buffer_text: {}\nvalue_in_z: {:?}", buffer_text.clone(), value_in_z.clone());
 			println!("---------------------------------------");
 			match ch {	
@@ -450,7 +628,17 @@ impl LogicalSheme {
 					self.debug();
 				},
 				'e' => { return; },
-				'\''=> { comment = true; },			
+				'\''=> { comment = true; },	
+				';' => { 
+					y_count = match buffer_text.trim().parse::<usize>() {
+						Ok(A) => { A },
+						Err(e)=> { panic!("значение количества входов должно быть числовым."); 0 },
+					};
+					buffer_text = "".to_string();
+				},
+				'^' => {					
+					union_layer = true;
+				},
 				':' => { 
 					//variable = true;
 					temp_name_variable = buffer_text.clone();
@@ -470,45 +658,122 @@ impl LogicalSheme {
 								Err(e)=> { panic!("значение количества входов должно быть числовым."); 0 },
 							};
 							self.variables_[variable_index] = Vec::new();
-							self.variables_[variable_index].push(BufferNet::new(1, y_count.clone()));
+							self.variables_[variable_index].push(BufferNet::new_input(y_count.clone()));
 							self.variables_[variable_index].push(BufferNet::new_empty());
 							//self.to_nav_map[variable_index] = ToNavMap::new();
 							//println!("input value_in_z: {:?}", value_in_z.clone());
+							if step_value != self.to_nav_map[variable_index].new_step() {
+								panic!("проверьте ваш пк, похоже кто-то пытается ломануть!");
+							}
 							value_in_z = Vec::new();
 							next_tire = false;
-							buffer_text = "".to_string();	
+							buffer_text = "".to_string();
 							continue;
 						}
-						if index_last_z != 0 {
-							for _ in 0..index_this_z.clone() {
-								self.to_nav_map[variable_index].add_to_step(step_value, index_last_z.clone());
+						if union_layer {
+							let fromHere_toHere: Vec<&str> = buffer_text.split('-').collect();
+							if fromHere_toHere.len() == 1 {
+								let value_: usize = match fromHere_toHere[0].to_string().trim().parse::<usize>() {
+									Ok(A)=>{ A },
+									Err(e)=>{ panic!("не получилось прочитать число групп запятой."); 0 },
+								};
+								self.to_nav_map[variable_index]
+									.grouping_according_to_latest_data(value_.clone(), index_this_z.clone());
+
+								value_in_z.push(value_.clone());
+							} else {
+								let from_here: usize = match fromHere_toHere[0].to_string().trim().parse::<usize>() {
+									Ok(A)=>{ A },
+									Err(e)=>{ panic!("не получилось прочитать число групп ОТ запятой."); 0 },
+								};
+								if fromHere_toHere[1] != "_" {
+									let to_here: usize = match fromHere_toHere[1].to_string().trim().parse::<usize>() {
+										Ok(A)=>{ A },
+										Err(e)=>{ panic!("не получилось прочитать число групп ДО запятой."); 0 },
+									};
+									self.to_nav_map[variable_index]
+										.grouping_according_data_fromHere_toHere(from_here, to_here, index_this_z);
+								} else {
+									self.to_nav_map[variable_index]
+										.grouping_according_data_fromHere_toEnd(from_here, index_this_z);
+								}
+								value_in_z.push(1);
 							}
-							//println!("")
+							union_layer = false;
+							let len_: usize = self.variables_[variable_index].len();
+							value_in_z.insert(0, y_count.clone());
+							println!("step value_in_z([y][x][x]): {:?}", value_in_z.clone());
+							self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
+							
+							self.variables_[variable_index].push(BufferNet::new_empty());
+							//BufferNet::new_empty
+							// тут не просто обнуление!
+							
+							//to_z_navigation = Vec::new();
+							for this_i in this_z_array {
+								self.to_nav_map[variable_index]
+									.add_to_step_lastZ_thisZ(
+										step_value.clone(), 
+										index_last_z.clone(),
+										this_i.clone()
+									);
+							}				
+							step_value += 1;
+							if step_value != self.to_nav_map[variable_index].new_step() {
+								panic!("ошибка в карте и шагах!");
+							}
 						} else {
-							self.to_nav_map[variable_index].add_to_step(step_value, 0);
+							// return add; if != 16 -> can't add element
+							//pub add_to_step_lastZ_thisZ(&mut self, step: usize , last_z: usize, this_z: usize)->u8{
+
+							// return step_id new step
+							//pub fn new_step(&mut self)->usize{
+							//for last_i in 0..index_last_z {						
+							if index_this_z != 0 {
+								let value_: usize = match buffer_text.trim().parse::<usize>() {
+									Ok(A)=>{ A },
+									Err(e)=>{ panic!("не получилось прочитать число около запятой."); 0 },
+								};
+								buffer_text = "".to_string();	
+								this_z_array.push(index_this_z.clone());
+								value_in_z.push(value_.clone());
+							}
+							
+							for this_i in this_z_array {
+								self.to_nav_map[variable_index]
+									.add_to_step_lastZ_thisZ(
+										step_value.clone(), 
+										index_last_z.clone(),
+										this_i.clone()
+									);
+							}
+							//}
+							//let mut index_last_z: usize = 0;
+							//let mut this_z_array: usize = 0;
+
+							
+							let len_: usize = self.variables_[variable_index].len();
+							value_in_z.insert(0, y_count.clone());
+							println!("step value_in_z([y][x][x]): {:?}", value_in_z.clone());
+							self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
+							
+							self.variables_[variable_index].push(BufferNet::new_empty());
+							//BufferNet::new_empty
+							// тут не просто обнуление!
+							
+							//to_z_navigation = Vec::new();
+													
+							step_value += 1;
+							if step_value != self.to_nav_map[variable_index].new_step() {
+								panic!("ошибка в карте и шагах!");
+							}							
 						}
-						if index_this_z != 0 {
-							let value_: usize = match buffer_text.trim().parse::<usize>() {
-								Ok(A)=>{ A },
-								Err(e)=>{ panic!("не получилось прочитать число около запятой."); 0 },
-							};
-							buffer_text = "".to_string();				
-							index_this_z += 1;							
-							value_in_z.push(value_.clone());
-						}
-						let len_: usize = self.variables_[variable_index].len();
-						value_in_z.insert(0, y_count.clone());
-						println!("step value_in_z([y][x][x]): {:?}", value_in_z.clone());
-						self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
-						
-						self.variables_[variable_index].push(BufferNet::new_empty());
-						//BufferNet::new_empty
-						// тут не просто обнуление!
-						value_in_z = Vec::new();
-						//to_z_navigation = Vec::new();
-						buffer_text = "".to_string();
-						step_value += 1;
 						next_tire = false;
+						index_last_z = 0;
+						index_this_z = 0;
+						this_z_array = Vec::new();
+						value_in_z = Vec::new();
+						buffer_text = "".to_string();
 					}
 				},				
 				',' => {
@@ -519,28 +784,78 @@ impl LogicalSheme {
 						Ok(A)=>{ A },
 						Err(e)=>{ panic!("не получилось прочитать число около запятой."); 0 },
 					};
-					buffer_text = "".to_string();				
-					index_this_z += 1;							
+					buffer_text = "".to_string();
+					this_z_array.push(index_this_z.clone());				
+					//this_z_array += 1;			
+					index_this_z += 1;				
 					value_in_z.push(value_.clone());					
 				},
 				'|' => { 
 					let len_: usize = self.variables_[variable_index].len();
-					value_in_z.insert(0, y_count.clone());
-					self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
-					// step_value: usize 		// навигация по шагам
-					// to_z_navigation:       ; // навигация по z
-					for _ in 0..index_this_z.clone() {
-						self.to_nav_map[variable_index].add_to_step(step_value, index_last_z.clone());
-					}
-					/*
-						pub fn add_and_new_step(&mut self, value: usize){
-						pub fn add_to_step(&mut self, step: usize, value: usize){
-					*/
-					//to_nav_map: Vec<ToNavMap>,
+					if union_layer {
+						let fromHere_toHere: Vec<&str> = buffer_text.split('-').collect();
+						if fromHere_toHere.len() == 1 {
+							let value_: usize = match fromHere_toHere[0].to_string().trim().parse::<usize>() {
+								Ok(A)=>{ A },
+								Err(e)=>{ panic!("не получилось прочитать число групп запятой."); 0 },
+							};
+							println!("value: {}",value_);
+							self.to_nav_map[variable_index]
+								.grouping_according_to_latest_data(value_.clone(), index_this_z.clone());
 
+							value_in_z.push(value_.clone());
+						} else {
+							let from_here: usize = match fromHere_toHere[0].to_string().trim().parse::<usize>() {
+								Ok(A)=>{ A },
+								Err(e)=>{ panic!("не получилось прочитать число групп ОТ запятой."); 0 },
+							};
+							if fromHere_toHere[1] != "_" {
+								let to_here: usize = match fromHere_toHere[1].to_string().trim().parse::<usize>() {
+									Ok(A)=>{ A },
+									Err(e)=>{ panic!("не получилось прочитать число групп ДО запятой."); 0 },
+								};
+								self.to_nav_map[variable_index]
+									.grouping_according_data_fromHere_toHere(from_here, to_here, index_this_z);
+							} else {
+								self.to_nav_map[variable_index]
+									.grouping_according_data_fromHere_toEnd(from_here, index_this_z);
+							}
+							value_in_z.push(1);
+						}
+						union_layer = false;
+					} else {
+						let value_: usize = match buffer_text.trim().parse::<usize>() {
+							Ok(A)=>{ A },
+							Err(e)=>{ panic!("не получилось прочитать число около запятой."); 0 },
+						};
+						this_z_array.push(index_this_z.clone());
+						value_in_z.push(value_.clone());
+						//value_in_z.insert(0, y_count.clone());
+						//self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
+						// step_value: usize 		// навигация по шагам
+						// to_z_navigation:       ; // навигация по z
+						//this_z_array += 1;
+						//self.to_nav_map[variable_index].grouping_by_this_data(from_here, to_here);
+						for this_i in this_z_array {
+							self.to_nav_map[variable_index]
+								.add_to_step_lastZ_thisZ(
+									step_value.clone(), 
+									index_last_z.clone(),
+									this_i.clone()
+								);
+						}
+						/*
+							pub fn add_and_new_step(&mut self, value: usize){
+							pub fn add_to_step(&mut self, step: usize, value: usize){
+						*/
+						//to_nav_map: Vec<ToNavMap>,					
+					}
 					// запись в Map
+					buffer_text = "".to_string();	
+					this_z_array = Vec::new();
 					index_last_z += 1;					
-					index_this_z = 0;
+					index_this_z += 1;
+					//this_z_array = 0;
 				},
 				' ' | '\t'=> {
 					continue;
@@ -557,7 +872,11 @@ impl LogicalSheme {
 				']' => {
 					close_br = true;
 				},
-				_ => {					
+				_ => {	
+					if next_tire {
+						next_tire = false;
+						buffer_text.push('-');
+					}				
 					buffer_text.push(ch);
 				},
 			}			
@@ -589,7 +908,7 @@ fn main() {
 	let mut t = LogicalSheme::new();
 	t.parser("
 	' comment
-	main: 5->5,5->De");
+	main: 5->5,5->5|5->2,2|2,2->2|2,2|2|2,2-> ^2-_ | ^1 | ^1-_ ->De out");
     /*t.parser("
             ' ThGorge Parser Ver: 0.01
             ' It's a cool network

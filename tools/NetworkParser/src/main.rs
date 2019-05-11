@@ -7,7 +7,7 @@ pub struct Neyron{
     //inputs: Vec<f32>,
     learn_speed: f32,
  
-    result: f32,
+    //result: f32,
  
 }
 impl Neyron {
@@ -39,7 +39,7 @@ impl Neyron {
 			weight: weight_, 
 			//inputs: inputs_, 
 			learn_speed: learn_speed, 
-			result: 0.0 
+			//result: 0.0 
 		}
 	}
 	pub fn new_input_neyron(inputs: usize)->Neyron {
@@ -57,7 +57,7 @@ impl Neyron {
 			weight: weight_,
 			//inputs: inputs_,
 			learn_speed: learn_speed, 
-			result: 0.0 
+			//result: 0.0 
 		}
 	}
 	pub fn clone(&self)->Neyron{ 
@@ -65,38 +65,22 @@ impl Neyron {
 			weight: self.weight.clone(), 
 			//inputs: self.inputs.clone(), 
 			learn_speed: self.learn_speed.clone(), 
-			result: self.result.clone() 
+			//result: self.result.clone() 
 		} 
 	}
 	pub fn on_error(&mut self, tr_value: Vec<f32>) {
+		// A = L(E/x)
+		// где 
+		// A - значение на которое меняем веса
+		// L - скорость обучение (для более точного ответа сети)
+		// E - ошибка; E = верный ответ - ответ сети
+		// х - вес связи
 		
 	}
-	pub fn answer(&self) -> f32 {
-		self.result.clone()
-	}
 	// fn() and get_set result
-	pub fn input_(&mut self, inputs: Vec<f32>)->f32{
+	pub fn answer(&self, inputs: Vec<f32>)->f32 {
 		if inputs.len() > self.weight.clone().len() {
-			println!("warning: input information > weight.len()");
-			let len_: usize = inputs.len() + 1;
-			let len_w: usize= self.weight.clone().len();
-			for _ in len_w..len_ {
-				let mut rng = rand::thread_rng();
-				//if rng.gen() { // random bool
-				let mut f: f32 = rng.gen::<f32>();
-				if f < 0.0 {
-					while f < -1.0 {
-						f /= 10.0;
-					}
-				} else if f > 0.0 {
-					while f > 1.0 {
-						f /= 10.0;
-					}
-				} else {
-					f = -0.5;
-				}
-				self.weight.push(f);
-			}
+			panic!("input information > weight.len()");			
 		}
 		let mut result_: f32 = 0.0;
 		//let one: f32 = 1.0;
@@ -128,17 +112,23 @@ impl Neyron {
 		result_ = 1.0/(1.0+exp);
 		// 	  1
 		//-----------
-		//		 (-x)
+		//       (-x)
 		//	1 + e
-		self.result = result_.clone();
+		//self.result = result_.clone();
 		result_
 	}
-	pub fn get_result(&self)->f32 { self.result.clone() }	
+	//pub fn get_result(&self)->f32 { self.result.clone() }	
 }
 pub struct LayerNet {
 	layer: Vec<Neyron>, // нейроны в слою // 						   [y]
 }
 impl LayerNet {
+	pub fn new_output_layer(inputs_count: usize)->LayerNet{
+		let mut layer_: Vec<Neyron> = Vec::new();
+		layer_.push(Neyron::new(inputs_count.clone(), 0.001));
+		//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron		
+		LayerNet { layer: layer_ }
+	}
 	pub fn new(count: usize)->LayerNet{
 		let mut layer_: Vec<Neyron> = Vec::new();
 		for i in 0..count.clone() {
@@ -163,6 +153,15 @@ impl LayerNet {
 		}
 		LayerNet { layer: r }
 	}
+	pub fn answer(&self, input: Vec<f32>)->Vec<f32>{
+		let len_ = self.layer.len();
+		let mut output: Vec<f32> = Vec::new();
+		for y in 0..len_ {
+			let result: f32 = self.layer[y].answer(input.clone());
+			output.push(result.clone());
+		}
+		output
+	}
 }
 pub struct BufferNet {
 	layers: Vec<Vec<LayerNet>>, // 			 						   [z][x]
@@ -171,6 +170,19 @@ pub struct BufferNet {
 	//on_layers_in_layers_len: Vec<usize> // глубина
 }
 impl BufferNet {
+	pub fn get_z_len(&self)->usize {
+		self.layers.len()
+	}
+	pub fn answer(&self, z: usize, input: Vec<f32>)->Vec<f32>{
+		let len_: usize = self.layers[z].len();
+		let mut input_: Vec<f32> = input;
+		//let mut output: Vec<f32> = Vec::new();
+		for x in 0..len_ {
+			input_ = self.layers[z][x].answer(input_.clone());
+		}
+		// если это конечная точка - то вернётся вектор с одним элементом #
+		input_
+	}	
 	pub fn add_to_depth(&mut self, mut depth_map: Vec<usize>){
 		let len: usize = depth_map.clone().len();
 		// первый - колво иксов
@@ -270,6 +282,19 @@ impl BufferNet {
 				self.layers.push(Vec::new());
 			}, // new z
 			   // пустой z
+			"naz" => {
+				let len_: usize = value_x.len();
+				if len_ == 0 {
+					panic!("попытка создать output layer с неинициализированным [y]");
+				}				
+				let y_count: usize = value_x[0].clone();
+				// LayerNet::new_output_layer(inputs_count: usize)
+				let mut tmp: Vec<LayerNet> = Vec::new();
+				tmp.push(LayerNet::new_output_layer(y_count.clone()));
+				self.layers.push(tmp);
+			}, // new answer z
+			   // для ответа, output слой
+			   // первый элемент - количество Y
 			"nzx" => {
 				let len_: usize = value_x.len();
 				if len_ == 0 {
@@ -445,14 +470,21 @@ impl ToNavMap {
 		let this_step: usize = self.navigation_on_separate_lines.len().clone() - 1;
 		while self.navigation_on_separate_lines[this_step].len() < (to_here + 1) {
 			self.navigation_on_separate_lines[this_step].push(Vec::new());
-		} 
+		}
 		let len_lastStep_lastZ: usize = self.navigation_on_separate_lines[this_step - 1].len();
 		for i in 0..len_lastStep_lastZ {
 			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
 			for k in 0..len_s {
-				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];
-				if z_ >= from_here || z_ == to_here {
+				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];				
+				if z_ >= self.navigation_on_separate_lines[this_step].len() {
+					while self.navigation_on_separate_lines[this_step].len() < (z_ + 1) {
+						self.navigation_on_separate_lines[this_step].push(Vec::new());
+					}
+				}				
+				if z_ >= from_here && z_ <= to_here {
+					//println!("to_here: {}", to_here);					
 					self.navigation_on_separate_lines[this_step][z_].push(this_z);
+					//println!("self.navigation_on_separate_lines[this_step]: {:?}", self.navigation_on_separate_lines[this_step].clone());
 				} else if z_ > to_here {
 					return;
 				}
@@ -468,8 +500,10 @@ impl ToNavMap {
 			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
 			for k in 0..len_s {
 				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];
-				while self.navigation_on_separate_lines[this_step].len() < (z_ + 1) {
-					self.navigation_on_separate_lines[this_step].push(Vec::new());
+				if z_ >= self.navigation_on_separate_lines[this_step].len() {
+					while self.navigation_on_separate_lines[this_step].len() < (z_ + 1) {
+						self.navigation_on_separate_lines[this_step].push(Vec::new());
+					}
 				}				
 				self.navigation_on_separate_lines[this_step][z_].push(this_z);
 			}
@@ -477,6 +511,57 @@ impl ToNavMap {
 	}
 }
 impl LogicalSheme {
+	pub fn answer(&self, variable: usize, inputs: Vec<f32>) -> Vec<f32> {
+		/*
+			impl BufferNet {
+				pub fn answer(&self, z: usize, input: Vec<f32>)->Vec<f32>{
+				pub fn get_z_len(&self)->usize {
+		*/
+		/*
+			pub struct LogicalSheme { // self
+			variables_: Vec<Vec<BufferNet>>, //[variables][step] // обращение: [step].[z][x].[y] 
+			// 											                        [шаг].[группа][x].[y]
+			to_nav_map: Vec<ToNavMap>,//[variables]
+			variables_name: Vec<String>,
+			//variables_val : Vec<usize>,
+			words: Vec<String>,
+		}
+		pub struct ToNavMap {
+			navigation_on_separate_lines: Vec<Vec<Vec<usize>>>, // навигация по отдельным линиям
+			//[step][порядковый номер z предыдущий][тут текущие Z] его значение -> на какой порядковый отсылается
+		}
+		*/
+		let steps: usize = self.variables_[variable].len();
+		let mut input_: Vec<f32> = inputs;
+		let mut output_: Vec<Vec<f32>> = Vec::new();
+		for step in 0..steps {			
+			let map_zets_last_step: usize = self.to_nav_map[variable]
+				.navigation_on_separate_lines[step].len();
+			if step == 0 {				
+				for i in 0..map_zets_last_step {
+					let this_zs: usize = self.to_nav_map[variable]
+						.navigation_on_separate_lines[step][i].len();
+					for k in 0..this_zs {
+						output_.push(self.variables_[variable][step].answer(k, input_.clone()));
+					}
+				} 
+				continue;
+			}
+			let mut temp_input: Vec<Vec<f32>> = output_.clone();
+			output_ = Vec::new();
+			for index_last_z in 0..map_zets_last_step {
+				for index_this_z in 0..self.to_nav_map[variable].navigation_on_separate_lines[step][index_last_z].len() {
+					output_.push(self.variables_[variable][step].answer(index_this_z, temp_input[index_last_z].clone()));
+				}
+			}			
+		} 
+		// даём ответ
+		input_ = Vec::new();
+		for index_answer in 0..self.variables_[variable][steps - 1].get_z_len() {
+
+		}
+		Vec::new()
+	}
 	pub fn search_var(&self, text: String)-> Result<usize, ()>{
 		let mut indx: usize = 0;
 		for word in self.variables_name.clone() {			
@@ -658,10 +743,10 @@ impl LogicalSheme {
 								Err(e)=> { panic!("значение количества входов должно быть числовым."); 0 },
 							};
 							self.variables_[variable_index] = Vec::new();
-							self.variables_[variable_index].push(BufferNet::new_input(y_count.clone()));
+							//self.variables_[variable_index].push(BufferNet::new_input(y_count.clone()));
 							self.variables_[variable_index].push(BufferNet::new_empty());
 							//self.to_nav_map[variable_index] = ToNavMap::new();
-							//println!("input value_in_z: {:?}", value_in_z.clone());
+							//println!("input value_in_z: {:?}", value_in_z.clone());							
 							if step_value != self.to_nav_map[variable_index].new_step() {
 								panic!("проверьте ваш пк, похоже кто-то пытается ломануть!");
 							}
@@ -908,7 +993,7 @@ fn main() {
 	let mut t = LogicalSheme::new();
 	t.parser("
 	' comment
-	main: 5->5,5->5|5->2,2|2,2->2|2,2|2|2,2-> ^2-_ | ^1 | ^1-_ ->De out");
+	main: 2 -> 1, 1 -> out<2> De out");
     /*t.parser("
             ' ThGorge Parser Ver: 0.01
             ' It's a cool network

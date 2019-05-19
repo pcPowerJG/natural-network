@@ -11,6 +11,9 @@ pub struct Neyron{
  
 }
 impl Neyron {
+	pub fn weight_count(&self)->usize{
+		self.weight.len()
+	}
 	pub fn new(weight: usize, learn_speed: f32)->Neyron{
 		println!("weight_count: {}", weight);
 		let mut weight_: Vec<f32> = Vec::new();
@@ -18,7 +21,7 @@ impl Neyron {
 		for i in 0..weight{
 		    let mut rng = rand::thread_rng();
 		    //if rng.gen() { // random bool
-		    let mut f: f32 = rng.gen::<f32>();
+		    /*let mut f: f32 = rng.gen::<f32>();
 			let h: f32 = rng.gen::<f32>();
 			if h > 0.6 {
 				f *= -1.0;
@@ -33,7 +36,7 @@ impl Neyron {
 				}
 		    } else {
 				f = -0.5;
-		    }
+		    }*/ let f: f32 = 0.5;
 		    weight_.push(f);
 		}
 		/*let mut inputs_: Vec<f32> = Vec::new();
@@ -115,6 +118,7 @@ impl Neyron {
 			panic!("результат возведения в степень e^-x не может быть NaN");
 		}
 		result_ = 1.0/(1.0+exp);
+		println!("пришло на нейрон: {:?}\nresult внутри сети: {}", inputs, result_);
 		// 	  1
 		//-----------
 		//       (-x)
@@ -128,6 +132,9 @@ pub struct LayerNet {
 	layer: Vec<Neyron>, // нейроны в слою // 						   [y]
 }
 impl LayerNet {
+	pub fn first_weight_len(&self)->usize{
+		self.layer[0].weight_count()
+	}
 	pub fn new_output_layer(inputs_count: usize)->LayerNet{
 		let mut layer_: Vec<Neyron> = Vec::new();
 		layer_.push(Neyron::new(inputs_count.clone(), 0.001));
@@ -139,8 +146,10 @@ impl LayerNet {
 		//println!("count: {}", count);
 		for i in 0..create_count {
 			println!("i__: {}", i);
-			layer_.push(Neyron::new(input_count.clone(), 0.001));
-			//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron
+			for _ in 0..input_count.clone() {
+				layer_.push(Neyron::new(input_count.clone(), 0.001));
+				//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron
+			}
 		}
 		LayerNet { layer: layer_ }
 	}
@@ -165,8 +174,8 @@ impl LayerNet {
 		let len_ = self.layer.len();
 		let mut output: Vec<f32> = Vec::new();
 		for y in 0..len_ {
-			let result: f32 = self.layer[y].answer(input.clone());
-			output.push(result.clone());
+			//let result: f32 = self.layer[y].answer(input.clone());
+			output.push(self.layer[y].answer(input.clone()));
 		}
 		println!("ушло: {:?}", output);
 		output
@@ -435,8 +444,8 @@ pub struct ToNavMap {
 	// индексы ответов в формате Vec<(usize, usize)>, 
 	// где первый usize -> шаг
 	// второй -> index Z в шаге
-	union_layer_in_step_and_z: Vec<(usize, usize, usize)>,
-	// индексы объединений в формате Vec<(usize, usize, usize)>,
+	union_layer_in_step_and_z: Vec<(usize, usize, Vec<usize>)>,
+	// индексы объединений в формате Vec<(usize, usize, Vec<usize>)>,
 	// где первый - это шаг
 	// второй - index z для объединения
 	// третий - количество входящих z
@@ -484,25 +493,27 @@ impl ToNavMap {
 		//let 
 		let len_lastStep_lastZ: usize = self.navigation_on_separate_lines[this_step - 1].len();
 		//let 
-		for i in 0..len_lastStep_lastZ {
+		let mut union_layer_in_step_and_z_: Vec<usize> = Vec::new();
+		for i in 0..len_lastStep_lastZ {			
 			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
 			for k in 0..len_s {
 				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];
+				union_layer_in_step_and_z_.push(z_);
 				while self.navigation_on_separate_lines[this_step].len() < (z_ + 1) {
 					self.navigation_on_separate_lines[this_step].push(Vec::new());
 				}				
-				self.navigation_on_separate_lines[this_step][z_].push(this_z);
+				//self.navigation_on_separate_lines[this_step][z_].push(this_z);				
 				ret_val += 1;
 			}
 		} 
 		/*
-			union_layer_in_step_and_z: Vec<(usize, usize, usize)>,
-			// индексы объединений в формате Vec<(usize, usize, usize)>,
+			union_layer_in_step_and_z: Vec<(usize, usize, Vec<usize>)>,
+			// индексы объединений в формате Vec<(usize, usize, Vec<usize>)>,
 			// где первый - это шаг
 			// второй - index z для объединения
-			// третий - количество входящих z
+			// третий - входящие z
 		*/
-		self.union_layer_in_step_and_z.push((this_step, this_z, ret_val.clone()));
+		self.union_layer_in_step_and_z.push((this_step, this_z, union_layer_in_step_and_z_));
 		ret_val
 	}
 	pub fn grouping_according_data_fromHere_toHere(&mut self, from_here: usize, to_here: usize, this_z: usize) -> usize{
@@ -511,6 +522,7 @@ impl ToNavMap {
 		while self.navigation_on_separate_lines[this_step].len() < (to_here + 1) {
 			self.navigation_on_separate_lines[this_step].push(Vec::new());
 		}
+		let mut union_layer_in_step_and_z_: Vec<usize> = Vec::new();
 		let len_lastStep_lastZ: usize = self.navigation_on_separate_lines[this_step - 1].len();
 		for i in 0..len_lastStep_lastZ {
 			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
@@ -523,30 +535,31 @@ impl ToNavMap {
 				}				
 				if z_ >= from_here && z_ <= to_here {
 					//println!("to_here: {}", to_here);					
-					self.navigation_on_separate_lines[this_step][z_].push(this_z);
+					//self.navigation_on_separate_lines[this_step][z_].push(this_z);
+					union_layer_in_step_and_z_.push(z_.clone());
 					ret_val += 1;
 					//println!("self.navigation_on_separate_lines[this_step]: {:?}", self.navigation_on_separate_lines[this_step].clone());
 				} else if z_ > to_here {
 					/*
-						union_layer_in_step_and_z: Vec<(usize, usize, usize)>,
-						// индексы объединений в формате Vec<(usize, usize, usize)>,
+						union_layer_in_step_and_z: Vec<(usize, usize, Vec<usize>)>,
+						// индексы объединений в формате Vec<(usize, usize, Vec<usize>)>,
 						// где первый - это шаг
 						// второй - index z для объединения
 						// третий - количество входящих z
 					*/
-					self.union_layer_in_step_and_z.push((this_step, this_z, ret_val.clone()));
+					self.union_layer_in_step_and_z.push((this_step, this_z, union_layer_in_step_and_z_));
 					return ret_val;
 				}
 			}
 		}
 		/*
-			union_layer_in_step_and_z: Vec<(usize, usize, usize)>,
-			// индексы объединений в формате Vec<(usize, usize, usize)>,
+			union_layer_in_step_and_z: Vec<(usize, usize, Vec<usize>)>,
+			// индексы объединений в формате Vec<(usize, usize, Vec<usize>)>,
 			// где первый - это шаг
 			// второй - index z для объединения
 			// третий - количество входящих z
 		*/
-		self.union_layer_in_step_and_z.push((this_step, this_z, ret_val.clone())); 
+		self.union_layer_in_step_and_z.push((this_step, this_z, union_layer_in_step_and_z_));
 		ret_val
 	}
 	pub fn grouping_according_data_fromHere_toEnd(&mut self, from_here: usize, this_z: usize) -> usize{
@@ -555,27 +568,29 @@ impl ToNavMap {
 		//let 
 		let len_lastStep_lastZ: usize = self.navigation_on_separate_lines[this_step - 1].len();
 		//let 
+		let mut union_layer_in_step_and_z_: Vec<usize> = Vec::new();
 		for i in from_here..len_lastStep_lastZ {
-			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 
+			let len_s: usize = self.navigation_on_separate_lines[this_step - 1][i].len(); 			
 			for k in 0..len_s {
 				let z_: usize = self.navigation_on_separate_lines[this_step - 1][i][k];
+				union_layer_in_step_and_z_.push(z_);
 				if z_ >= self.navigation_on_separate_lines[this_step].len() {
 					while self.navigation_on_separate_lines[this_step].len() < (z_ + 1) {
 						self.navigation_on_separate_lines[this_step].push(Vec::new());
 					}
 				}				
-				self.navigation_on_separate_lines[this_step][z_].push(this_z);
+				//self.navigation_on_separate_lines[this_step][z_].push(this_z);
 				ret_val += 1;
 			}
 		} 
 		/*
-			union_layer_in_step_and_z: Vec<(usize, usize, usize)>,
-			// индексы объединений в формате Vec<(usize, usize, usize)>,
+			union_layer_in_step_and_z: Vec<(usize, usize, Vec<usize>)>,
+			// индексы объединений в формате Vec<(usize, usize, Vec<usize>)>,
 			// где первый - это шаг
 			// второй - index z для объединения
 			// третий - количество входящих z
 		*/
-		self.union_layer_in_step_and_z.push((this_step, this_z, ret_val.clone()));
+		self.union_layer_in_step_and_z.push((this_step, this_z, union_layer_in_step_and_z_));
 		ret_val
 	}
 }
@@ -608,19 +623,22 @@ impl LogicalSheme {
 		let steps: usize = self.variables_[variable].len();
 		let y_count: usize = inputs.clone().len();
 		let mut for_return: Vec<f32> = Vec::new();
-		let mut input_: Vec<f32> = inputs;
-		let mut output_: Vec<Vec<f32>> = Vec::new();
-		let answers: Vec<(usize, usize)> = self.to_nav_map[variable].output_layer_in_step_and_in_z.clone();
-		let group_on_step_z_count: Vec<(usize, usize, usize)> = self.to_nav_map[variable].union_layer_in_step_and_z.clone();
+		let mut input_: Vec<f32> = inputs; // массив входом
+		let mut output_: Vec<Vec<f32>> = Vec::new(); // массив ответов для каждого Z, где [z][answer]
+		let answers: Vec<(usize, usize)> = self.to_nav_map[variable].output_layer_in_step_and_in_z.clone();		
+		let group_on_step_z_count: Vec<(usize, usize, Vec<usize>)> = self.to_nav_map[variable].union_layer_in_step_and_z.clone();
 		let mut ans_indx: usize = 0;
+		let mut group_index: usize = 0;
 		for step in 0..steps {	
 			// буду переделывать, почти всё готово
+			println!("step: [{}]", step);
 			let mut temp_input: Vec<Vec<f32>> = output_.clone();
 			output_ = Vec::new();	
-
+			
 			let map_zets_last_step: usize = self.to_nav_map[variable]
 				.navigation_on_separate_lines[step].len();
-			if ans_indx < answers.len() && step == answers[ans_indx].clone().0 {
+			//println!("косяк?");
+			if ans_indx < answers.len() && step == answers[ans_indx].0.clone() {
 				// ответы сети
 				for_return.push(answer_function(
 					self.variables_[variable][step - 1].answer(0, 
@@ -628,21 +646,39 @@ impl LogicalSheme {
 				).clone());
 				ans_indx += 1;
 			}
-			if step == 0 {				
+			//println!("да не");
+			if group_index < group_on_step_z_count.len() && 
+						step == group_on_step_z_count[group_index].0.clone() {
+				//
+				let mut input_s: Vec<f32> = Vec::new();
+				println!("group_on_step_z_count[group_index].2.clone():  {:?}", group_on_step_z_count[group_index].2.clone());
+				for z_to_group in group_on_step_z_count[group_index].2.clone() {
+					for i in 0..temp_input[z_to_group].len() {
+						input_s.push(temp_input[z_to_group][i]);
+					}
+				}
+				println!("input_for_group: {:?}", input_s);
+				output_.push(self.variables_[variable][step].answer(group_on_step_z_count[group_index].1.clone(), input_s));
+			}
+			
+			if step == 0 {		
+				// первый раз, заносим в инпуты		
 				for i in 0..map_zets_last_step {
 					let this_zs: usize = self.to_nav_map[variable]
 						.navigation_on_separate_lines[step][i].len();
 					for k in 0..this_zs {
-						output_.push(self.variables_[variable][step].answer(k, input_.clone()));
+						output_.push(self.variables_[variable][step].answer(k, input_.clone()));						
 					}
 				} 
+				println!("output: {:?}", output_);
 				continue;
 			}
 			for index_last_z in 0..map_zets_last_step {
 				for index_this_z in 0..self.to_nav_map[variable].navigation_on_separate_lines[step][index_last_z].len() {
 					output_.push(self.variables_[variable][step].answer(index_this_z, temp_input[index_last_z].clone()));
 				}
-			}
+			} 
+			println!("output: {:?}", output_);
 		} 
 		// даём ответ
 		//input_ = Vec::new();
@@ -865,7 +901,7 @@ impl LogicalSheme {
 								value__ = self.to_nav_map[variable_index]
 									.grouping_according_to_latest_data(value_.clone(), index_this_z.clone());
 
-								value_in_z.push(value_.clone());
+								//value_in_z.push(value_.clone());
 							} else {								
 								let from_here: usize = match fromHere_toHere[0].to_string().trim().parse::<usize>() {
 									Ok(A)=>{ A },
@@ -882,11 +918,11 @@ impl LogicalSheme {
 									value__ = self.to_nav_map[variable_index]
 										.grouping_according_data_fromHere_toEnd(from_here, index_this_z);
 								}
-								value_in_z.push(1);
+								//value_in_z.push(1);
 							}
 							union_layer = false;
 							let len_: usize = self.variables_[variable_index].len();
-							value_in_z.insert(0, y_count.clone() * value__.clone());
+							value_in_z.insert(0, y_count.clone());
 							println!("step value_in_z([y][x][x]): {:?}", value_in_z.clone());
 							self.variables_[variable_index][len_ - 1].add("nzx", value_in_z.clone());
 							
@@ -1011,7 +1047,7 @@ impl LogicalSheme {
 							self.to_nav_map[variable_index]
 								.grouping_according_to_latest_data(value_.clone(), index_this_z.clone());
 
-							value_in_z.push(value_.clone());
+							//value_in_z.push(value_.clone());
 						} else {
 							let from_here: usize = match fromHere_toHere[0].to_string().trim().parse::<usize>() {
 								Ok(A)=>{ A },
@@ -1028,7 +1064,11 @@ impl LogicalSheme {
 								self.to_nav_map[variable_index]
 									.grouping_according_data_fromHere_toEnd(from_here, index_this_z);
 							}
-							value_in_z.push(1);
+							// value_in_z.push(1); написать им новый 'nay' (New Answer Layer) в
+							// self.variables_[variable_index][len_ - 1].add("nay", вектор);
+							// в векторе первым - колво Y, второе - колво объединяемых Z
+							// по формуле Y * Z (то есть колво нейронов на количество групп, будет всего колво связей)
+							// сделать только один слой дефакто, потом может добавлю для других
 						}
 						union_layer = false;
 					} else {

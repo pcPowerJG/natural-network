@@ -377,7 +377,9 @@ impl BufferNet {
 		self.layers.len()
 	}
 	pub fn insert_(&mut self, z: usize, x: usize, y: LayerNet){
-		self.layers[z][x] = y;
+		if z < self.layers.len() && x < self.layers[z].len() {
+			self.layers[z][x] = y;
+		}
 	}
 	pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32, last_step: BufferNet) -> Vec<f32> {
 		println!("пришло на for_start: [z]: [{}]\nlast_z_s: {:?}\ntrue_aswer: [{:?}]", 
@@ -1006,8 +1008,11 @@ impl LogicalSheme {
 			let mut this_z: Vec<usize> = prev_z.clone();
 			println!("this_z: {:?}", this_z);
 			let mut this_error: Vec<Vec<f32>> = errors.clone();
-			let mut last_step_prev_layers: Vec<LayerNet> = prev_layers;
-			let mut last_step_z_for_prev_layer: Vec<usize> = z_for_prev_layers;
+			let mut last_step_prev_layers: Vec<LayerNet> = Vec::new();
+			for _i in 0..prev_layers.len() {
+				last_step_prev_layers.push(prev_layers[_i].clone());
+			}
+			let mut last_step_z_for_prev_layer: Vec<usize> = z_for_prev_layers.clone();
 			let last_step_errors: Vec<Vec<f32>> = errors_prev_layers.clone();
 
 			errors_prev_layers = Vec::new();
@@ -1044,6 +1049,14 @@ impl LogicalSheme {
 				}			
 				this_step -= 1;					
 				prev_z = this_z.clone();
+				/*
+				let mut last_step_prev_layers: Vec<LayerNet> = prev_layers;
+				let mut last_step_z_for_prev_layer: Vec<usize> = z_for_prev_layers;
+				let last_step_errors: Vec<Vec<f32>> = errors_prev_layers.clone();
+				*/
+				prev_layers = last_step_prev_layers;
+				z_for_prev_layers = last_step_z_for_prev_layer;
+				errors_prev_layers = errors.clone();
 				println!("errors: {:?}\nprev_z: {:?}", errors, prev_z);	
 				//errors = this_error.clone();
 				println!("вышли из старта");
@@ -1141,10 +1154,11 @@ impl LogicalSheme {
 								for i in 0..y_count {
 									res.push(result__[z + i].clone());
 								}
-								errors.push(res);								
+								errors.push(res);
 								z += y_count.clone();
 								// z, err
 							}
+							println!("errors: {:?}", errors.clone());
 
 							for index_ in self.to_nav_map[variable].union_layer_in_step_and_z[index_group].2.clone(){
 								//let v: Vec<usize> = vec![index_];
@@ -1159,9 +1173,13 @@ impl LogicalSheme {
 							let mut result__: Vec<f32> = Vec::new();
 							let mut last_step_prev_layer_: LayerNet = LayerNet::new(0);
 							let mut prev_layer: LayerNet = LayerNet::new(0);
-
+							println!("last_step_z_for_prev_layer.len(): {}", last_step_z_for_prev_layer.len());
+							println!("z с которым работам, его индекс[\ni: [{}],\nзначение: [{}]\n]", i.clone(), this_z[i].clone());
 							for l in 0..last_step_z_for_prev_layer.len() {
+								println!("l: [{}]", l.clone());
+								// косяк в last_step_z_for_prev_layer
 								if last_step_z_for_prev_layer[l] == this_z[i] {
+									println!("last_step_prev_layers.len(): [{}]", last_step_prev_layers.len());
 									println!("last_step_errors.len(): {}", last_step_errors.len());
 									let (result__t, last_step_prev_layer_t, prev_layer_t) = match self.variables_[variable][this_step].error(
 										this_z[i].clone(), last_step_errors[l].clone(), 
@@ -1172,15 +1190,18 @@ impl LogicalSheme {
 									result__ = result__t; last_step_prev_layer_ = last_step_prev_layer_t; prev_layer = prev_layer_t;
 								}
 							}		
+							println!("вышли");
 							prev_layers.push(prev_layer.clone());							
 							/*let (result__, last_step_prev_layer_, prev_layer) = match self.variables_[variable][this_step]
 								.error(i.clone(), this_error[i].clone(), true_result.clone(), LayerNet::new(0)){
 								Ok(A) => { A },
 								Err(e)=> { return Err(()); (Vec::new(), LayerNet::new(0), LayerNet::new(0)) },
 							};*/
+							println!("инсерт");
 							self.variables_[variable][this_step + 1].insert_(
 								this_z[i].clone(), 0, last_step_prev_layer_
 							);
+							println!("/инсерт");
 							
 							errors.push(result__.clone());
 							prev_z.push(last_z_.clone());							

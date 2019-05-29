@@ -355,13 +355,31 @@ pub struct BufferNet {
 	//on_layers_in_layers_len: Vec<usize> // глубина
 }
 impl BufferNet {
+	pub fn clone(&self) -> BufferNet {
+		let mut lyrs: Vec<Vec<LayerNet>> = Vec::new();
+		//pub fn new(x: usize, y: usize, y_count: usize)->BufferNet{
+		let layers_in_layers: Vec<BufferNet> = Vec::new();
+		for i in 0..self.layers.len() {
+			let mut lyr: Vec<LayerNet> = Vec::new();
+			for k in 0..self.layers[i].len(){
+				lyr.push(self.layers[i][k].clone());
+			}
+			lyrs.push(lyr);
+		}
+		BufferNet {
+			layers: lyrs, // 			 						   [z][x]
+			//name: String,
+			layers_in_layers: layers_in_layers, // на каждый [z] свой 
+			//on_layers_in_layers_len: Vec<usize> // глубина
+		}
+	}
 	pub fn get_z_len(&self)->usize {
 		self.layers.len()
 	}
 	pub fn insert_(&mut self, z: usize, x: usize, y: LayerNet){
 		self.layers[z][x] = y;
 	}
-	pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32 ) -> Vec<f32> {
+	pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32, last_step: BufferNet) -> Vec<f32> {
 		println!("пришло на for_start: [z]: [{}]\nlast_z_s: {:?}\ntrue_aswer: [{:?}]", 
 			z.clone(), last_z_s.clone(), true_answer.clone());
 		let mut neyron = self.layers[z][self.layers[z].len() - 1].clone(); // neyron
@@ -369,28 +387,29 @@ impl BufferNet {
 		let mut out: Vec<f32> = Vec::new();
 		let mut errors: Vec<f32> = Vec::new();
 		for z_ in last_z_s {
-			let neyron_ = self.layers[z_][self.layers[z_].len() - 1].clone(); // neyron_
+			println!("last_step.layers.len() = {:?}", last_step.layers.len());
+			let neyron_ = last_step.layers[z_][last_step.layers[z_].len() - 1].clone(); // neyron_
 			// тут?
-			println!("косяк?");
-			for i in 0..neyron_.layer.len(){
-				let result: f32 = neyron.layer[i].result();
+			for i in 0..neyron_.layer.len(){			
 				out.push(neyron_.layer[i].result());
-				//for_return.push((weight_ / summ) * error.clone());
-				let mut summ: f32 = 0.0;
-				for l in 0..neyron_.layer[i].weight.len() {
-					for k in 0..neyron_.layer[i].weight.len() {
-						summ += neyron_.layer[i].weight[k].clone();
-					} 
-					errors.push((neyron_.layer[i].weight[l].clone() / summ.clone()) * result.clone());
-				}
+				//println!("косяк?");
+				//for_return.push((weight_ / summ) * error.clone());				
 			} 
 		}		
 		for i in 0..neyron.layer.len() { // тут по факту 1 [y] но на всякий // set_weight(weights: Vec<f32>)
 			// pub fn result(&self)->f32{
 			//pub fn sigmoid(&self, x: f32)->f32{
 			//pub fn umnoz(&self, indx: usize, out: Vec<f32>) -> f32 {	
+			let mut summ: f32 = 0.0;
+			let result: f32 = neyron.layer[i].result();	
+			for l in 0..neyron.layer[i].weight.len() {
+				for k in 0..neyron.layer[i].weight.len() {
+					summ += neyron.layer[i].weight[k].clone();
+				} 
+				errors.push((neyron.layer[i].weight[l].clone() / summ.clone()) * result.clone());
+			}
 			let weights: Vec<f32> = neyron.layer[i].clone().get_weight();
-			let result: f32 = neyron.layer[i].result();		
+			//let result: f32 = neyron.layer[i].result();		
 			for k in 0..weights.len(){
 				neyron.layer[i].weight[k] = (-1.0 * result.clone())
 				* neyron.layer[i].sigmoid(neyron.layer[i].umnoz(k, out.clone()))
@@ -968,9 +987,10 @@ impl LogicalSheme {
 				self.to_nav_map[variable].union_layer_in_step_and_z[i].1 == answer_index*/ {					
 				for index_ in self.to_nav_map[variable].union_layer_in_step_and_z[i].2.clone(){
 					//let v: Vec<usize> = vec![index_];
-					prev_z.push(index_);
+					prev_z.push(index_);	
 					prev_layers.push(LayerNet::new(0));
-				}
+					z_for_prev_layers.push(0);		
+				}				
 				index_group = i.clone();
 				if index_group == 0 { index_group = 1; }
 				index_group -= 1;
@@ -1004,8 +1024,10 @@ impl LogicalSheme {
 				let v: Vec<f32> = vec![error];
 				//this_step -= 1;	
 				//let count: usize = this_z.len() / y_count.clone();
-				//pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32 ) -> Vec<f32> {
-				let result__ = self.variables_[variable][this_step].for_start(index_group, this_z.clone(), true_result.clone());
+				//pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32, last_step: BufferNet) -> Vec<f32> {
+				println!("self.variables_[variable][this_step - 1].layers.len(): {:?}", self.variables_[variable][(this_step - 1)].layers.len());
+				let last_step = self.variables_[variable][this_step - 1].clone();
+				let result__ = self.variables_[variable][this_step].for_start(index_group, this_z.clone(), true_result.clone(), last_step);
 				let count: usize = result__.len() / y_count.clone();
 				println!("result__: {:?}", result__);
 				let mut z: usize = 0;
@@ -1029,8 +1051,9 @@ impl LogicalSheme {
 			}			
 			// находим ошибки
 			let mut in_xt: usize = 0;
-			loop {
-			//for i in 0..this_z.clone().len() {
+			// переделать
+			/*loop {
+				//for i in 0..this_z.clone().len() {
 				println!("this_error: {:?}\nthis_z: {:?}", this_error, this_z);	
 				if in_xt >= this_z.len() { break; }
 				let v_tmp: Vec<usize> = LogicalSheme::search_eq_value_and_return_indexs(this_z[in_xt].clone(), this_z.clone());
@@ -1049,9 +1072,10 @@ impl LogicalSheme {
 					this_z.remove(v_tmp[indx - delete_value]);
 					this_error.remove(v_tmp[indx - delete_value]);
 					delete_value += 1;
-				}				
+				}
 				//in_xt += 1;
-			} println!("this_error: {:?}\nthis_z: {:?}", this_error, this_z);	
+			}*/ 
+			println!("this_error: {:?}\nthis_z: {:?}", this_error, this_z);	
 			// ищем следующие Z для обновления по шагам
 			for last_z_ in 0..self.to_nav_map[variable].navigation_on_separate_lines[this_step].len() {
 				//let mut to_add: Vec<usize> = Vec::new();				
@@ -1138,6 +1162,7 @@ impl LogicalSheme {
 
 							for l in 0..last_step_z_for_prev_layer.len() {
 								if last_step_z_for_prev_layer[l] == this_z[i] {
+									println!("last_step_errors.len(): {}", last_step_errors.len());
 									let (result__t, last_step_prev_layer_t, prev_layer_t) = match self.variables_[variable][this_step].error(
 										this_z[i].clone(), last_step_errors[l].clone(), 
 										true_result.clone(), last_step_prev_layers[l].clone()) {

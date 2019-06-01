@@ -24,7 +24,7 @@ impl Neyron {
 		self.result.clone()
 	}
 	pub fn new(weight: usize, learn_speed: f32)->Neyron{
-		println!("weight_count: {}", weight);
+		//println!("weight_count: {}", weight);
 		let mut weight_: Vec<f32> = Vec::new();
 		
 		for i in 0..weight{
@@ -114,7 +114,7 @@ impl Neyron {
 		while exp.is_infinite(){
 			result_ = 0.0;
 		  	println!("----------------------------------------------------------------");
-		  	println!("веса: {:?}", self.weight);
+		  	//println!("веса: {:?}", self.weight);
 			//let mut max: usize = 0;
 			let mut rng = rand::thread_rng();
 			for i in 0..self.weight.len() {				
@@ -150,7 +150,7 @@ impl Neyron {
 		while exp.is_nan(){
 			result_ = 0.0;
 		  	println!("----------------------------------------------------------------");
-		  	println!("веса: {:?}", self.weight);
+		  	//println!("веса: {:?}", self.weight);
 			//panic!("результат возведения в степень e^-x не может быть NaN");
 			//let mut min: usize = 0;
 			let mut rng = rand::thread_rng();
@@ -186,8 +186,8 @@ impl Neyron {
 			} 
 			exp = (result_.clone() * -1.0).exp();
 		}
-		result_ = 1.0/(1.0+exp);
-		println!("веса: {:?}", self.weight);
+		result_ = self.sigmoid(result_.clone());
+		//println!("веса: {:?}", self.weight);
 		println!("пришло на нейрон: {:?}\nresult внутри сети: {}", inputs, result_);
 		
 		// 	  1
@@ -199,8 +199,9 @@ impl Neyron {
 	}
 	//pub fn get_result(&self)->f32 { self.result.clone() }	
 	pub fn sigmoid(&self, x: f32)->f32{
+		println!(" результат сигмоиды: {:?}", (1.0/(1.0 + (x.clone() * -1.0).exp())));
 		(				1.0/
-			((x.clone() * -1.0).exp())
+			(1.0 + (x.clone()).exp())
 		)
 	}
 	pub fn umnoz(&self, indx: usize, out: Vec<f32>) -> f32 {
@@ -209,46 +210,24 @@ impl Neyron {
 			summ += self.weight[indx].clone() * out_;
 		} summ
 	}
-	pub fn last_group_error(&mut self, 
-			error: f32, true_result: f32, output_prev_layer: f32, number_to_gr: usize, y_count: usize)
-		-> Result<f32, ()> {
-		println!("-------------------\nerror in last_group_error neyron: {}", error);
-		if error.is_nan() {
-			return Ok(0.0);
-		}
-		if error.is_infinite() {
-			return Err(());
-			//panic!("слишком большая ошибка");
-		}
-		let mut summ: f32 = 0.0;
-		for k in 0..self.weight.len().clone() {
-			if self.weight[k].clone().is_infinite() && self.weight[k].clone() > 0.0 {
-				self.weight[k] = -0.5;
-				println!("вес стал равен: [{}]", self.weight[k].clone());
-			} else if self.weight[k].clone().is_infinite() && self.weight[k].clone() < 0.0 {
-				self.weight[k] = 0.5;
-				println!("вес стал равен: [{}]", self.weight[k].clone());
-			}
-			summ += self.weight[k].clone();
-		}		
-		let weight_: f32 = self.weight[number_to_gr].clone();
-
-		println!("вес: [{}]", weight_);			
-		//self.weight[i] = self.learn_speed.clone() * (error.clone() / weight_.clone());
-		self.weight[number_to_gr] += ((-1.0 * error.clone()) * self.sigmoid(self.weight[number_to_gr] * output_prev_layer.clone()) * 
-		(1.0 - self.sigmoid(self.weight[number_to_gr] * output_prev_layer.clone())) * output_prev_layer) * self.learn_speed;
-		println!("вес: [{}]", self.weight[number_to_gr]);
-		/*if self.weight[i] < 0.00000000000001 {
-			self.weight[i] = -0.5;
-		} else if self.weight[i] > -0.00000000000001 {
-			self.weight[i] = 0.5;
-		}*/
-		println!("ошибка на вес[{}]: [{}]", number_to_gr, ((weight_ / summ) * error.clone()));
-		println!("сумма весов: [{}]", summ);
-		Ok((weight_ / summ) * error.clone())
-		
+	pub fn delta(&self, result: f32, true_result: f32) -> f32 {
+		(
+			result * (1.0 - result.clone()) * (true_result.clone() - result.clone())
+		)
 	}
-	pub fn error(&mut self, error: f32, true_result: f32, output_prev_layer: Vec<f32>)->Result<(Vec<f32>), ()>{
+	pub fn hidden_delta(&self, indx: usize, true_result: f32, out_: f32) -> f32{
+		0.0
+	}
+	pub fn error(&mut self, fact_result: f32, true_result: f32, inputs: Vec<f32>)->Result<(Vec<f32>), ()>{
+		// засунуть в for_start
+		//let d: f32 = self.result.clone() * (1.0 - self.result.clone())*(true_result.clone() - self.result.clone());
+		//let new_out_layer_weigth: f32 = old_out_layer_weigth + (self.learn_speed * d.clone() * self.result.clone());
+		// для скрытых слоёв
+		//let d: f32 = self.result.clone() * (1.0 - self.result.clone());
+
+		//let new_hidden_layer: f32 = old_hidden_layer + 
+		//	self.learn_speed * (self.hidden_delta(индекс_веса_который_меняем, true_result.clone()) * вес_связи_с_этим_слоем) * self.result.clone();
+		//
 		println!("-------------------\nerror in neyron: {}", error);
 		// where F: Fn(f32) -> f32 
 		// A = L(E/x)
@@ -259,6 +238,16 @@ impl Neyron {
 		// х - вес связи
 		let mut for_return: Vec<f32> = Vec::new();
 		if error.is_nan() {
+			for k in 0..self.weight.len().clone() {
+				if self.weight[k].clone().is_infinite() && self.weight[k].clone() > 0.0 {
+					self.weight[k] = -0.5;
+					println!("вес стал равен: [{}]", self.weight[k].clone());
+				} else if self.weight[k].clone().is_infinite() && self.weight[k].clone() < 0.0 {
+					self.weight[k] = 0.5;
+					println!("вес стал равен: [{}]", self.weight[k].clone());
+				}
+				//summ += self.weight[k].clone();
+			}
 			for i in 0..self.weight.len().clone() {
 				for_return.push(0.0);
 			}
@@ -287,16 +276,28 @@ impl Neyron {
 			
 			let weight_: f32 = self.weight[i].clone();
 
-			println!("вес: [{}]", weight_);			
+			println!("вес: [{}]", weight_);	
+			
+			//let error = (weight_ / summ) * error.clone();			
+			/*if true_result.clone() > 0.0 && self.sigmoid(self.umnoz(i.clone(), output_prev_layer.clone())) > 0.0 {
+				j_ *= -1.0;
+			} else {
+				//
+			}*/
 			//self.weight[i] = self.learn_speed.clone() * (error.clone() / weight_.clone());
+			println!(" изменяем вес на: {:?}", (((-1.0 * error.clone()) * self.sigmoid(self.umnoz(i.clone(), output_prev_layer.clone())) * 
+			(1.0 - self.sigmoid(self.umnoz(i.clone(), output_prev_layer.clone()))) * output_prev_layer[i]) * self.learn_speed));
+
 			self.weight[i] += ((-1.0 * error.clone()) * self.sigmoid(self.umnoz(i.clone(), output_prev_layer.clone())) * 
 			(1.0 - self.sigmoid(self.umnoz(i.clone(), output_prev_layer.clone()))) * output_prev_layer[i]) * self.learn_speed;
+
 			println!("вес: [{}]", self.weight[i]);
 			/*if self.weight[i] < 0.00000000000001 {
 				self.weight[i] = -0.5;
 			} else if self.weight[i] > -0.00000000000001 {
 				self.weight[i] = 0.5;
 			}*/
+			let weight_: f32 = self.weight[i].clone();
 			for_return.push((weight_ / summ) * error.clone());
 			println!("ошибка на вес[{}]: [{}]", i, ((weight_ / summ) * error.clone()));
 		}
@@ -312,43 +313,15 @@ impl LayerNet {
 		for i in 0..self.layer.len() {
 			output_.push(self.layer[i].result.clone());
 		} output_
-	}
-	pub fn last_group_error(&mut self, error: Vec<f32>,
-			true_result: f32, prev_layer: LayerNet, number_to_gr: usize, y_count: usize) ->
-		Result<Vec<f32>, ()> {
-		println!("error in LayerNet.last_group_error");
-		let mut for_return: Vec<f32> = error.clone();
-		let mut output_: Vec<f32> = prev_layer.get_output();
-		println!("error.len(): {}", error.len());	
-		println!("self.layer.len(): {}", self.layer.len());
-		for i in 0..error.len(){			
-			let for_temp_value: f32 = match self.layer[i]
-							.last_group_error(error[number_to_gr], true_result.clone(), 
-								output_[number_to_gr].clone(), number_to_gr.clone(), y_count.clone()) {
-				Ok(A) => { A },
-				Err(e) =>{ return Err(()); 0.0 },
-			};
-			for_return[number_to_gr] += for_temp_value;
-			/*println!("for_temp_value.len(): {}", for_temp_value.len());
-			for k in 0..for_temp_value.len() {
-				if k < for_return.len() {
-					for_return[k] += for_temp_value[k].clone();
-				} else {
-					for_return.push(for_temp_value[k].clone());
-				}
-			}*/
-		} 
-		Ok(for_return)
 	}	
-	
-	pub fn error(&mut self, error: Vec<f32>, true_result: f32, prev_layer: LayerNet)->Result<Vec<f32>, ()>{		
+	pub fn error(&mut self, error: Vec<f32>, true_result: f32, last_x_output: Vec<f32>)->Result<Vec<f32>, ()>{		
 		println!("error in LayerNet");
 		let mut for_return: Vec<f32> = Vec::new();
-		let mut output_: Vec<f32> = prev_layer.get_output();
+		//let mut output_: Vec<f32> = prev_layer.get_output();
 		println!("error.len(): {}", error.len());	
 		println!("self.layer.len(): {}", self.layer.len());
 		for i in 0..error.len(){			
-			let for_temp_value: Vec<f32> = match self.layer[i].error(error[i], true_result.clone(), output_.clone()) {
+			let for_temp_value: Vec<f32> = match self.layer[i].error(error[i], true_result.clone(), last_x_output.clone()) {
 				Ok(A) => { A },
 				Err(e) =>{ return Err(()); Vec::new() },
 			};
@@ -367,7 +340,7 @@ impl LayerNet {
 	}
 	pub fn new_output_layer(inputs_count: usize)->LayerNet{
 		let mut layer_: Vec<Neyron> = Vec::new();
-		layer_.push(Neyron::new(inputs_count.clone(), 0.00001));
+		layer_.push(Neyron::new(inputs_count.clone(), 0.01));
 		//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron		
 		LayerNet { layer: layer_ }
 	}
@@ -377,7 +350,7 @@ impl LayerNet {
 		//for i in 0..create_count {
 		//println!("i__: {}", i);
 		for _ in 0..input_count.clone() {
-			layer_.push(Neyron::new(input_count.clone(), 0.00001));
+			layer_.push(Neyron::new(input_count.clone(), 0.01));
 			//pub fn new(weight: usize, inputs: usize, learn_speed: f32)->Neyron
 		}
 		//}
@@ -457,7 +430,7 @@ impl BufferNet {
 			self.layers[z][x] = y;
 		}
 	}
-	pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32, last_step: BufferNet) -> Vec<f32> {
+	pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32, last_step: BufferNet, net_ans: f32) -> Vec<f32> {
 		println!("пришло на for_start: [z]: [{}]\nlast_z_s: {:?}\ntrue_aswer: [{:?}]", 
 			z.clone(), last_z_s.clone(), true_answer.clone());
 		let mut neyron = self.layers[z][self.layers[z].len() - 1].clone(); // neyron
@@ -480,17 +453,39 @@ impl BufferNet {
 			//pub fn umnoz(&self, indx: usize, out: Vec<f32>) -> f32 {	
 			let mut summ: f32 = 0.0;
 			let result: f32 = neyron.layer[i].result();	
+			let mut j_: f32 = 1.0;
+			/*if (true_answer.clone() - net_ans.clone()) > 0.0 {
+				j_ = -1.0;
+			} else {
+				j_ = 1.0;
+			}*/
 			for l in 0..neyron.layer[i].weight.len() {
 				for k in 0..neyron.layer[i].weight.len() {
 					summ += neyron.layer[i].weight[k].clone();
 				} 
-				errors.push((neyron.layer[i].weight[l].clone() / summ.clone()) * result.clone());
+				//if (out[l] - net_ans.clone()) > 0.0 {
+				//j_ = -1.0 * (true_answer.clone() - net_ans.clone()) * (true_answer.clone() - net_ans.clone());
+				//} else {
+				//	j_ = 1.0;
+				//}
+				println!("отправили на вес[{}] ошибку[ {:?} ]", l.clone(), ((neyron.layer[i].weight[l].clone() / summ.clone()) * result.clone() * j_.clone()));
+				errors.push((neyron.layer[i].weight[l].clone() / summ.clone()) * result.clone() * j_.clone());
 			}
 			let weights: Vec<f32> = neyron.layer[i].clone().get_weight();
 			//let result: f32 = neyron.layer[i].result();		
 			for k in 0..weights.len(){
 				println!("neyron.layer[i].weight[k]: {}", neyron.layer[i].weight[k].clone());
-				neyron.layer[i].weight[k] += ((-1.0 * result.clone())
+				if neyron.layer[i].weight[k].clone().is_infinite() || (neyron.layer[i].weight[k].clone()*-1.0).is_infinite(){					 
+					if neyron.layer[i].weight[k].clone().is_infinite() {
+						neyron.layer[i].weight[k] = -0.5;
+					} else if (neyron.layer[i].weight[k].clone()*-1.0).is_infinite() {
+						neyron.layer[i].weight[k] = 0.5;
+					} else {
+						neyron.layer[i].weight[k] = 0.1;
+					}
+					println!("стал: {}", neyron.layer[i].weight[k].clone());
+				}
+				neyron.layer[i].weight[k] += ((-1.0 * (true_answer.clone() - net_ans.clone()))
 				* neyron.layer[i].sigmoid(neyron.layer[i].umnoz(k, out.clone()))
 				* (1.0 - neyron.layer[i].sigmoid(neyron.layer[i].umnoz(k, out.clone()))) * result.clone())
 					* neyron.layer[i].learn_speed; // запили отдельный метод, если ласт был группой
@@ -501,119 +496,45 @@ impl BufferNet {
 		self.layers[z][x] = neyron;
 		errors
 	}
-	pub fn group_error(&mut self, 
-		z: usize, number_to_gr: usize, mut error: Vec<f32>, true_result: f32, mut prev_layer: LayerNet, y_count: usize) -> 
-	Result<(Vec<f32>, LayerNet, LayerNet), ()> {
-		// доделать, а пока иди спать		
-	}
-	pub fn last_group_error(&mut self, 
-		z: usize, number_to_gr: usize, mut error: Vec<f32>, true_result: f32, mut prev_layer: LayerNet, y_count: usize) -> 
-	Result<(Vec<f32>, LayerNet, LayerNet), ()> {
-		let mut x: usize = self.layers[z].len() - 1;
-		let mut prev_layer_ = LayerNet::new(0);
-		println!("error in BufferNet.last_group_error");
-		//let mut prev_layer = LayerNet::new(0);
-		println!("prev_layer.layer.len(): {}", prev_layer.layer.len());
-		if x == 0 {
-			error = match prev_layer.error(error.clone(), true_result.clone(), self.layers[z][x].clone()) {
-				Ok(A) => { A },
-				Err(e)=> { return Err(()); Vec::new() },
-			};
-			prev_layer_ = prev_layer.clone();
-			prev_layer = LayerNet::new(0);
-		} else {
-			loop {			
-				if x == 0 {
-					prev_layer = self.layers[z][x].clone();
-					println!("вышли из цикла");
-					break;
-				}
-				println!("работаем в цикле");
-				if prev_layer.layer.len() != 0 {
-					println!("воу, пришёл рабочий предыдущий");
-					error = match prev_layer.group_error(error.clone(), true_result.clone(), 
-								self.layers[z][x].clone(), number_to_gr.clone(), y_count.clone()) {
-						Ok(A) => { A },
-						Err(e)=> { return Err(()); Vec::new() },
-					};
-					x -= 1;
-					if x == 0 {
-						prev_layer = self.layers[z][x].clone();
-						println!("вышли из цикла");
-						break;
-					}
-					error = match prev_layer.last_group_error(error.clone(), true_result.clone(), 
-								self.layers[z][x].clone(), number_to_gr.clone(), y_count.clone()) {
-						Ok(A) => { A },
-						Err(e)=> { return Err(()); Vec::new() },
-					};
-					prev_layer_ = prev_layer.clone();
-					prev_layer = LayerNet::new(0);
-				} else {
-					let last_x = self.layers[z][x - 1].clone();
-					error = match self.layers[z][x].error(error.clone(), true_result.clone(), last_x) {
-						Ok(A) => { A },
-						Err(e)=> { return Err(()); Vec::new() },
-					};
-				}
-				//prev_layer = self.layers[z][x].clone();
-				x -= 1;
+	pub fn get_output_to_las_x(&self, z: usize) -> Vec<f32> {
+		if z < self.layers.len() {
+			if self.layers[z].len() == 0 {
+				panic!("неинициализированный слой");
 			}
+			let x: usize = self.layers[z].len() - 1;
+			self.layers[z][x].get_output()
+		} else {
+			panic!("неинициализированный слой");
+			Vec::new()
 		}
-
-		Ok((error, prev_layer_, prev_layer))
 	}
 	pub fn error(&mut self, 
-		z: usize, mut error: Vec<f32>, true_result: f32, mut prev_layer: LayerNet) -> 
-	Result<(Vec<f32>, LayerNet, LayerNet), ()> {
+		z: usize, mut error: Vec<f32>, true_result: f32, mut prev_layer_out: Vec<f32>) -> 
+	Result<Vec<f32>, ()> {
+		// лучше тащить не предыдущий layerNet, а ответы с предыдущего шага, по Z
 		// предыдущий (нулевой) с предыдущего step [z][0], возвращаем ошибки, старый предыдущий, новый предыдущий
 		//error(&mut self, error: Vec<f32>, true_result: f32, prev_layer: LayerNet)
-		let mut x: usize = self.layers[z].len() - 1;
-		let mut prev_layer_ = LayerNet::new(0);
-		println!("error in BufferNet");
-		//let mut prev_layer = LayerNet::new(0);
-		println!("prev_layer.layer.len(): {}", prev_layer.layer.len());
-		if x == 0 {
-			error = match prev_layer.error(error.clone(), true_result.clone(), self.layers[z][x].clone()) {
-				Ok(A) => { A },
-				Err(e)=> { return Err(()); Vec::new() },
-			};
-			prev_layer_ = prev_layer.clone();
-			prev_layer = LayerNet::new(0);
-		} else {
-			loop {			
-				if x == 0 {
-					prev_layer = self.layers[z][x].clone();
-					println!("вышли из цикла");
-					break;
-				}
-				println!("работаем в цикле");
-				if prev_layer.layer.len() != 0 {
-					println!("воу, пришёл рабочий предыдущий");
-					error = match prev_layer.error(error.clone(), true_result.clone(), self.layers[z][x].clone()) {
-						Ok(A) => { A },
-						Err(e)=> { return Err(()); Vec::new() },
-					};
-					prev_layer_ = prev_layer.clone();
-					prev_layer = LayerNet::new(0);
-				} else {
-					let last_x = self.layers[z][x - 1].clone();
-					error = match self.layers[z][x].error(error.clone(), true_result.clone(), last_x) {
-						Ok(A) => { A },
-						Err(e)=> { return Err(()); Vec::new() },
-					};
-				}
+		let mut x: usize = self.layers[z].len() - 1;		
+		loop {			
+			if x == 0 {
 				//prev_layer = self.layers[z][x].clone();
-				x -= 1;
+				error = match self.layers[z][x].error(error.clone(), true_result.clone(), prev_layer_out) {
+					Ok(A) => { A },
+					Err(e)=> { return Err(()); Vec::new() },
+				};
+				println!("вышли из цикла");
+				break;
 			}
-		}
-		/*for x in 0..self.layers[z].len() {
-			error = match self.layers[z][x].error(error.clone(), true_result.clone()) {
+			println!("работаем в цикле");
+			let last_x_output: Vec<f32> = self.layers[z][x - 1].clone().get_output();
+			error = match self.layers[z][x].error(error.clone(), true_result.clone(), last_x_output) {
 				Ok(A) => { A },
 				Err(e)=> { return Err(()); Vec::new() },
 			};
-		} */
-		Ok((error, prev_layer_, prev_layer))
+			//prev_layer = self.layers[z][x].clone();
+			x -= 1;
+		}
+		Ok(error)
 	}
 	pub fn z_count(&self)->usize{
 		self.layers.len()
@@ -1106,7 +1027,7 @@ impl LogicalSheme {
 			vector_[i] += arg_plus[i];
 		} vector_
 	}
-	pub fn on_error(&mut self, variable: usize, answer_index: usize, y_count: usize, error: f32, true_result: f32) -> Result<f32, ()> {
+	pub fn on_error(&mut self, variable: usize, answer_index: usize, y_count: usize, error: f32, net_ans: f32, true_result: f32, inputs_: Vec<f32>) -> Result<f32, ()> {
 		/*
 			impl BufferNet {
 		*/
@@ -1119,9 +1040,9 @@ impl LogicalSheme {
 		//let mut union_z_to_error: Vec<usize> = Vec::new();
 		let mut errors: Vec<Vec<f32>> = Vec::new(); // [z][error value]
 		let mut start: bool = true;
-		let mut prev_layers: Vec<LayerNet> = Vec::new();
-		let mut z_for_prev_layers: Vec<usize> = Vec::new();
-		let mut errors_prev_layers: Vec<Vec<f32>> = Vec::new();
+		//let mut prev_layers: Vec<LayerNet> = Vec::new();
+		//let mut z_for_prev_layers: Vec<usize> = Vec::new();
+		//let mut errors_prev_layers: Vec<Vec<f32>> = Vec::new();
 		//let mut last_step_prev_layers: Vec<LayerNet> = Vec::new();
 		//let mut last_step_z_for_prev_layer: Vec<LayerNet> = Vec::new();
 		// z: usize, mut error: Vec<f32>, true_result: f32, mut prev_layer: LayerNet) -> Result<(Vec<f32>, LayerNet), ()> {
@@ -1150,7 +1071,7 @@ impl LogicalSheme {
 					//let v: Vec<usize> = vec![index_];
 					prev_z.push(index_);	
 					//prev_layers.push(LayerNet::new(0));
-					z_for_prev_layers.push(index_);		
+					//z_for_prev_layers.push(index_);		
 				}				
 				index_group = i.clone();
 				if index_group == 0 { index_group = 1; }
@@ -1168,15 +1089,15 @@ impl LogicalSheme {
 			println!("this_z: {:?}", this_z);
 			let mut this_error: Vec<Vec<f32>> = errors.clone();
 			let mut last_step_prev_layers: Vec<LayerNet> = Vec::new();
-			for _i in 0..prev_layers.len() {
-				last_step_prev_layers.push(prev_layers[_i].clone());
-			}
-			let mut last_step_z_for_prev_layer: Vec<usize> = z_for_prev_layers.clone();
-			let last_step_errors: Vec<Vec<f32>> = errors_prev_layers.clone();
+			//for _i in 0..prev_layers.len() {
+			//	last_step_prev_layers.push(prev_layers[_i].clone());
+			//}
+			//let mut last_step_z_for_prev_layer: Vec<usize> = z_for_prev_layers.clone();
+			//let last_step_errors: Vec<Vec<f32>> = errors_prev_layers.clone();
 
-			errors_prev_layers = Vec::new();
-			z_for_prev_layers = Vec::new();
-			prev_layers = Vec::new();
+			//errors_prev_layers = Vec::new();
+			//z_for_prev_layers = Vec::new();
+			//prev_layers = Vec::new();
 			errors = Vec::new();
 			prev_z = Vec::new();
 
@@ -1191,7 +1112,7 @@ impl LogicalSheme {
 				//pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, true_answer: f32, last_step: BufferNet) -> Vec<f32> {
 				println!("self.variables_[variable][this_step - 1].layers.len(): {:?}", self.variables_[variable][(this_step - 1)].layers.len());
 				let last_step = self.variables_[variable][this_step - 1].clone();
-				let result__ = self.variables_[variable][this_step].for_start(index_group, this_z.clone(), true_result.clone(), last_step);
+				let result__ = self.variables_[variable][this_step].for_start(index_group, this_z.clone(), true_result.clone(), last_step, net_ans);
 				
 				println!("self.variables_[variable][this_step].clone().layers[0][0].layer.len(): {}", 
 					self.variables_[variable][this_step].clone().layers[0][0].layer.len());
@@ -1217,10 +1138,10 @@ impl LogicalSheme {
 				let mut last_step_z_for_prev_layer: Vec<usize> = z_for_prev_layers;
 				let last_step_errors: Vec<Vec<f32>> = errors_prev_layers.clone();
 				*/
-				prev_layers = last_step_prev_layers;
-				println!("prev_layers.len(): {}", prev_layers.len());
-				z_for_prev_layers = last_step_z_for_prev_layer;
-				errors_prev_layers = errors.clone();
+				//prev_layers = last_step_prev_layers;
+				//println!("prev_layers.len(): {}", prev_layers.len());
+				//z_for_prev_layers = last_step_z_for_prev_layer;
+				//errors_prev_layers = errors.clone();
 				println!("errors: {:?}\nprev_z: {:?}", errors, prev_z);	
 				//errors = this_error.clone();
 				println!("вышли из старта");
@@ -1229,7 +1150,7 @@ impl LogicalSheme {
 			// находим ошибки
 			let mut in_xt: usize = 0;
 			// переделать
-			/*loop {
+			loop {
 				//for i in 0..this_z.clone().len() {
 				println!("this_error: {:?}\nthis_z: {:?}", this_error, this_z);	
 				if in_xt >= this_z.len() { break; }
@@ -1251,7 +1172,7 @@ impl LogicalSheme {
 					delete_value += 1;
 				}
 				//in_xt += 1;
-			}*/ 
+			}
 			println!("this_error: {:?}\nthis_z: {:?}", this_error, this_z);	
 			let mut count_element_in_group: usize = 0;
 			// ищем следующие Z для обновления по шагам
@@ -1283,39 +1204,25 @@ impl LogicalSheme {
 
 							*/
 							let mut result__: Vec<f32> = Vec::new();
-							let mut last_step_prev_layer_: LayerNet = LayerNet::new(0);
-							let mut prev_layer: LayerNet = LayerNet::new(0);
-
-							for l in 0..last_step_z_for_prev_layer.len() {
-								if last_step_z_for_prev_layer[l] == this_z[i] {									
-									let (result__t, last_step_prev_layer_t, prev_layer_t) = match self.variables_[variable][this_step].error(
-										this_z[i].clone(), last_step_errors[l].clone(), 
-										true_result.clone(), last_step_prev_layers[l].clone()) {
-											Ok(A) => { A },
-											Err(e)=> { return Err(()); (Vec::new(), LayerNet::new(0), LayerNet::new(0)) }
-									};
-									result__ = result__t; last_step_prev_layer_ = last_step_prev_layer_t; prev_layer = prev_layer_t;
+							let mut last_out: Vec<f32> = Vec::new();
+							// self.variables_[variable][this_step - 1].clone().get_output_to_las_x(last_z_);
+							for _z in self.to_nav_map[variable].union_layer_in_step_and_z[index_group].2.clone() {
+								let out_temp: Vec<f32> = self.variables_[variable][this_step].
+															clone().get_output_to_las_x(_z);
+								for f_32 in out_temp {
+									last_out.push(f_32.clone());
 								}
-							}		
-							prev_layers.push(prev_layer.clone());
-							/*let (result__, last_step_prev_layer_, prev_layer) = match self.variables_[variable][this_step]
-								.error(i.clone(), this_error[i].clone(), true_result.clone(), LayerNet::new(0)){
-								Ok(A) => { A },
-								Err(e)=> { return Err(()); (Vec::new(), LayerNet::new(0), LayerNet::new(0)) },
-							};*/
-							if last_step_prev_layer_.layer.len() == 0{
-								println!("косяк в группах");
 							}
-							self.variables_[variable][this_step + 1].insert_(
-								this_z[i].clone(), 0, last_step_prev_layer_
-							);
+							result__ = match self.variables_[variable][this_step].error(
+								this_z[i].clone(), this_error[i].clone(), 
+								true_result.clone(), last_out) {
+									Ok(A) => { A },
+									Err(e)=> { return Err(()); Vec::new() }
+							};
+							//result__ = result__t;
+
 							let count: usize = self.to_nav_map[variable].
 												union_layer_in_step_and_z[index_group].2.len() / y_count.clone();
-							
-							//let mut prev_layers: Vec<LayerNet> = Vec::new();
-							//let mut z_for_prev_layers: Vec<usize> = Vec::new();
-							//let mut errors_prev_layers: Vec<Vec<f32>> = Vec::new();
-
 							let mut z: usize = 0;
 							while z <= (count + 1) {
 								let mut res: Vec<f32> = Vec::new();
@@ -1329,9 +1236,7 @@ impl LogicalSheme {
 							println!("errors: {:?}", errors.clone());
 
 							for index_ in self.to_nav_map[variable].union_layer_in_step_and_z[index_group].2.clone(){
-								//let v: Vec<usize> = vec![index_];
 								prev_z.push(index_);
-								//to_add.push(index_);
 							}			
 							index_group -= 1;
 							continue;			
@@ -1339,75 +1244,35 @@ impl LogicalSheme {
 						if self.to_nav_map[variable].navigation_on_separate_lines[this_step][last_z_][this_z_] == this_z[i] {
 							println!("this_error: {:?}\ni: {}", this_error, i);
 							let mut result__: Vec<f32> = Vec::new();
-							let mut last_step_prev_layer_: LayerNet = LayerNet::new(0);
-							let mut prev_layer: LayerNet = LayerNet::new(0);
-							println!("last_step_z_for_prev_layer.len(): {}", last_step_z_for_prev_layer.len());
-							println!("z с которым работам, его индекс[\ni: [{}],\nзначение: [{}]\n]", i.clone(), this_z[i].clone());
-							println!("last_step_z_for_prev_layer: {:?}", last_step_z_for_prev_layer.clone());
-							for l in 0..last_step_z_for_prev_layer.len() {
-								println!("l: [{}]", l.clone());
-								if last_step_z_for_prev_layer[l] == this_z[i] {
-									let mut group: bool = false;
-									for j in 0..self.to_nav_map[variable].union_layer_in_step_and_z.len(){
-										if self.to_nav_map[variable].union_layer_in_step_and_z[j].0 == this_step + 1 {
-											//
-											let elements_in_group: Vec<usize> = self.to_nav_map[variable].union_layer_in_step_and_z[j].2.clone();
-											let this_step: BufferNet = self.variables_[variable][this_step].clone();
-											// ошибка в самом начале, он думает что весов столько же, сколько и на основном но эт не так.
-											//group = true;
-											println!("group");
-											/*let (result__t, last_step_prev_layer_t, prev_layer_t) = 
-															match self.variables_[variable][this_step].group_error(
-											this_z[i].clone(), last_step_errors[l].clone(), 
-											true_result.clone(), last_step_prev_layers[l].clone(), */
-											/*count_z:*//* self.to_nav_map[variable].union_layer_in_step_and_z[j].2.len()
-											) {
-												Ok(A) => { A },
-												Err(e)=> { return Err(()); (Vec::new(), LayerNet::new(0), LayerNet::new(0)) }
-											};*/
-											count_element_in_group += 1;
-										}
-									}
-									if group { continue; }
-									println!("last_step_prev_layers.len(): [{}]", last_step_prev_layers.len());
-									println!("last_step_errors.len(): {}", last_step_errors.len());
-									let (result__t, last_step_prev_layer_t, prev_layer_t) = match self.variables_[variable][this_step].error(
-										this_z[i].clone(), last_step_errors[l].clone(), 
-										true_result.clone(), last_step_prev_layers[l].clone()) {
-											Ok(A) => { A },
-											Err(e)=> { return Err(()); (Vec::new(), LayerNet::new(0), LayerNet::new(0)) }
-									};
-									result__ = result__t; last_step_prev_layer_ = last_step_prev_layer_t; prev_layer = prev_layer_t;
-								}
-							}		
+							println!("z с которым работам, его индекс[\ni: [{}],\nзначение: [{}]\n]", i.clone(), this_z[i].clone());							
+							if this_step != 0 {
+								let last_out: Vec<f32> = self.variables_[variable][this_step - 1].clone().get_output_to_las_x(last_z_);
+								let result__t = match self.variables_[variable][this_step].error(
+									this_z[i].clone(), this_error[i].clone(), 
+									true_result.clone(), last_out) {
+										Ok(A) => { A },
+										Err(e)=> { return Err(()); Vec::new() }
+								};
+								result__ = result__t; 
+							} else {
+								let last_out: Vec<f32> = inputs_.clone();
+								let result__t = match self.variables_[variable][this_step].error(
+									this_z[i].clone(), this_error[i].clone(), 
+									true_result.clone(), last_out) {
+										Ok(A) => { A },
+										Err(e)=> { return Err(()); Vec::new() }
+								};
+								result__ = result__t;
+							}								
 							println!("вышли");
-							prev_layers.push(prev_layer.clone());							
-							/*let (result__, last_step_prev_layer_, prev_layer) = match self.variables_[variable][this_step]
-								.error(i.clone(), this_error[i].clone(), true_result.clone(), LayerNet::new(0)){
-								Ok(A) => { A },
-								Err(e)=> { return Err(()); (Vec::new(), LayerNet::new(0), LayerNet::new(0)) },
-							};*/
-							println!("инсерт");
-							if last_step_prev_layer_.layer.len() == 0 {
-								println!("косяк в основном цикле");
-							}
-							self.variables_[variable][this_step + 1].insert_(
-								this_z[i].clone(), 0, last_step_prev_layer_
-							);
-							println!("/инсерт");
 							
 							errors.push(result__.clone());
 							prev_z.push(last_z_.clone());							
-							println!("errors: {:?}\nprev_z: {:?}", errors, prev_z);							
-							//to_add.push(last_z_.clone());
-							//prev_z.push(to_add);
+							println!("errors: {:?}\nprev_z: {:?}", errors, prev_z);
 						}											
 					}
 				}				
 			}// end circle
-			errors_prev_layers = this_error.clone();
-			z_for_prev_layers = this_z.clone();
-
 			if this_step == 0 { break; }
 			this_step -= 1;
 		} Ok(0.0)
@@ -2026,16 +1891,52 @@ fn main() {
     println!("Hello, world!");
 	
 	
-	let v: Vec<f32> = vec![0.0, 1.0];
+	let mut v: Vec<f32> = vec![0.0, 1.0];
+	/*let v1: Vec<f32> =vec![1.0, 0.0];
+	let v2: Vec<f32> =vec![1.0, 1.0];
+	let v3: Vec<f32> =vec![0.0, 0.0];*/
 	let mut b: bool = true;
 	//loop {
 		let mut t = LogicalSheme::new();
 		t.parser("
 		' comment
 		main:  2 -> 2, 2 -> ^1 -> <0> -> De out");
-		let mut ans: usize = 0;
-		let mut s = t.answer(0, v.clone(), answer_function);
-		t.on_error(0, 0, 2, (1.0 - s[0]), 1.0);
+		let mut ans: Vec<Vec<f32>> = Vec::new();
+		let mut s: Vec<f32> = Vec::new();
+		let mut b: usize = 0;
+		for i in 0..100 {
+			let mut rng = rand::thread_rng();
+		    //if rng.gen() { // random bool
+		    //let mut f: f32 = rng.gen::<f32>();
+			/*let h: u8 = rng.gen::<u8>();
+			if h > 1 && h < 50 {
+				v = vec![0.1, 0.9];
+			} else if h > 50 && h < 100 {
+				v = vec![0.9, 0.1];
+			} else if h > 100 && h < 150 {
+				v = vec![0.1, 0.1];
+			} else if h > 250 {
+				v = vec![0.9, 0.9];
+			}*/
+			ans.push(t.answer(0, v.clone(), answer_function));
+			let l_: usize = s.len();
+			//if s[l_ - 1][0] > 0.99 {
+			//	println!("---------------------------------------");
+			//	println!("цикл на котором всё ок: {:?}", i);
+			//	break;
+			//}
+			/*if h > 100 && h < 150 {
+				if ans[0] > 0.9 { s.push(0.0); }
+				b += 1;
+				t.on_error(0, 0, 2, (0.0 - ans[0]), ans[0], 0.1, v.clone());	
+			} else {*/
+				//if ans[0] > 0.9 { s.push(1.0); }
+				t.on_error(0, 0, 2, (1.0 - ans[l_][0]), ans[l_][0], 1.0, v.clone());			
+			//}
+		}
+		//let s1= t.answer(0, v.clone(), answer_function);
+		println!("---------------------------------------");
+		//println!("s: |{:?}|", (s.len()/b));
 		/*loop {				
 			let ans_ = t.answer(0, v.clone(), answer_function);
 			if ans_[0] == s[0] {

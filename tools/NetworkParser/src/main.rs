@@ -252,16 +252,24 @@ impl Neyron {
 	}
 	pub fn error_perc(&mut self, fact_result: f32, true_result: f32, input: f32, hidden_errors: f32) {
 		for i in 0..1 {
-			print!("\tвес[{}] был: [{}]", i.clone(), self.weight[i].clone());
+			//print!("\tвес[{}] был: [{}]", i.clone(), self.weight[i].clone());
 			self.weight[i] += self.learn_speed * ((hidden_errors.clone() * self.result * (1.0 - self.result)) * input);
-			println!(" | стал: [{}]", self.weight[i].clone());
+			//println!(" | стал: [{}]", self.weight[i].clone());
 		}
 	}
-	pub fn error(&mut self, fact_result: f32, true_result: f32, inputs: Vec<f32>, hidden_errors: Vec<f32>) {
+	pub fn error(&mut self, fact_result: f32, true_result: f32, mut inputs: Vec<f32>, hidden_errors: Vec<f32>) {
 		
 		for i in 0..self.weight.clone().len() {
 			//print!("\tвес[{}] был: [{}]", i.clone(), self.weight[i].clone());
-			self.weight[i] += self.learn_speed * (((hidden_errors[i].clone() * self.result * (1.0 - self.result)) * inputs[i])/self.weight[i]);
+			//if self.weight[i] != 0.0 {
+			//if inputs[i] < 0.5 {
+			//	inputs[i] = 0.4;
+			//}
+			
+			self.weight[i] += self.learn_speed * (((hidden_errors[i].clone() * self.result * (1.0 - self.result)) * inputs[i]));
+			//} else {
+			//	self.weight[i] += self.learn_speed * (((hidden_errors[i].clone() * self.result * (1.0 - self.result)) * inputs[i])/1.0);
+			//}
 			//println!(" | стал: [{}]", self.weight[i].clone());
 		}		
 		return;
@@ -475,7 +483,7 @@ impl BufferNet {
 			self.layers[z][x] = y;
 		}
 	}
-	pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, last_step: BufferNet, true_answer: f32, net_ans: f32) -> Vec<f32> {
+	pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, last_step: BufferNet, true_answer: f32, net_ans: f32, inputs_: Vec<f32>) -> Vec<f32> {
 		//println!("пришло на for_start: [z]: [{}]\nlast_z_s: {:?}\ntrue_aswer: [{:?}]", 
 			//z.clone(), last_z_s.clone(), true_answer.clone());
 		let mut neyron = self.layers[z][self.layers[z].len() - 1].clone(); // neyron
@@ -489,33 +497,37 @@ impl BufferNet {
 			for i in 0..neyron_.layer.len(){			
 				out.push(neyron_.layer[i].result());
 				//println!("косяк?");
-				//for_return.push((weight_ / summ) * error.clone());				
-			} 
+				//for_return.push((weight_ / summ) * error.clone());		
+				//for l in 0..neyron_.layer[i].weight.len() {
+					/*for k in 0..neyron.layer[i].weight.len() {
+						summ += neyron.layer[i].weight[k].clone();
+					} */
+					//let mut weight: f32 = neyron_.layer[i].weight[l].clone();
+					//if (out[l] - net_ans.clone()) > 0.0 {
+					//j_ = -1.0 * (true_answer.clone() - net_ans.clone()) * (true_answer.clone() - net_ans.clone());
+					//} else {
+					//	j_ = 1.0;
+					//}
+					//println!("отправили на вес[{}] ошибку[ {:?} ]", l.clone(), ((true_answer - net_ans) * neyron.layer[i].weight[l]));
+					
+					//errors.push((true_answer - net_ans) * weight);
+					//}
+				//}									
+			}			
 		}		
 		for i in 0..neyron.layer.len() { // тут по факту 1 [y] но на всякий // set_weight(weights: Vec<f32>)
 			// pub fn result(&self)->f32{
 			//pub fn sigmoid(&self, x: f32)->f32{
 			//pub fn umnoz(&self, indx: usize, out: Vec<f32>) -> f32 {	
-			let mut summ: f32 = 0.0;
+			let mut summ: f32 = 0.0;				
 			let result: f32 = neyron.layer[i].result();	
 			let mut j_: f32 = 1.0;
 			/*if (true_answer.clone() - net_ans.clone()) > 0.0 {
 				j_ = -1.0;
 			} else {
 				j_ = 1.0;
-			}*/
-			for l in 0..neyron.layer[i].weight.len() {
-				/*for k in 0..neyron.layer[i].weight.len() {
-					summ += neyron.layer[i].weight[k].clone();
-				} */
-				//if (out[l] - net_ans.clone()) > 0.0 {
-				//j_ = -1.0 * (true_answer.clone() - net_ans.clone()) * (true_answer.clone() - net_ans.clone());
-				//} else {
-				//	j_ = 1.0;
-				//}
-				//println!("отправили на вес[{}] ошибку[ {:?} ]", l.clone(), ((true_answer - net_ans) * neyron.layer[i].weight[l]));
-				errors.push((true_answer - net_ans) * neyron.layer[i].weight[l]);
-			}
+			}*/			
+			
 			let weights: Vec<f32> = neyron.layer[i].clone().get_weight();
 			//let result: f32 = neyron.layer[i].result();		
 			for k in 0..weights.len(){
@@ -530,7 +542,9 @@ impl BufferNet {
 					}
 					println!("стал: {}", neyron.layer[i].weight[k].clone());
 				}*/
-				neyron.layer[i].weight[k] += neyron.layer[i].learn_speed * (((true_answer * net_ans) * (1.0 - net_ans)) * out[k].clone()); // запили отдельный метод, если ласт был группой
+				//println!("отправили на вес[{}] ошибку[ {:?} ]", k.clone(), ((true_answer - net_ans) * neyron.layer[i].weight[k]));
+				errors.push(((true_answer * net_ans) * (1.0 - net_ans)) * neyron.layer[i].weight[k].clone());
+				neyron.layer[i].weight[k] += neyron.layer[i].learn_speed * (((true_answer * net_ans) * (1.0 - net_ans)) * out[k].clone()); // запили отдельный метод, если ласт был группой				
 				//println!("neyron.layer[i].weight[k]: {}", neyron.layer[i].weight[k].clone());
 			}
 		} 
@@ -1198,7 +1212,7 @@ impl LogicalSheme {
 				//println!("self.variables_[variable][this_step - 1].layers.len(): {:?}", self.variables_[variable][(this_step - 1)].layers.len());
 				let last_step = self.variables_[variable][this_step - 1].clone();
 				// pub fn for_start(&mut self, z: usize, last_z_s: Vec<usize>, last_step: BufferNet, true_answer: f32, net_ans: f32) -> Vec<f32> {
-				let result__ = self.variables_[variable][this_step].for_start(index_group, this_z.clone(), last_step, true_result.clone(), net_ans);
+				let result__ = self.variables_[variable][this_step].for_start(index_group, self.to_nav_map[variable].union_layer_in_step_and_z[index_group].2.clone(), last_step, true_result.clone(), net_ans, inputs_.clone());
 				
 				//println!("self.variables_[variable][this_step].clone().layers[0][0].layer.len(): {}", 
 				//	self.variables_[variable][this_step].clone().layers[0][0].layer.len());
@@ -1984,10 +1998,16 @@ fn answer_function(answer: f32, number: usize)->f32{
 }
 fn for_create_weight(weight_count: usize, learn_speed: f32) -> (Vec<f32>, f32) {
 	let mut weight_: Vec<f32> = Vec::new();
+	//let mut b: bool = false;
 	for i in 0..weight_count {
+		//let mut rng = rand::thread_rng();		
 		weight_.push(0.1);
+		//b != b.clone();
+		//} else {
+			//weight_.push(-0.1);
+		//}
 	}
-	println!(" вернули: {:?}, 0.01", weight_.clone());
+	//println!(" вернули: {:?}, 0.01", weight_.clone());
 	(weight_, 0.01)
 } //where F: Fn(usize, f32) -> (Vec<f32>, f32)
 fn main() {
@@ -2073,7 +2093,7 @@ fn main() {
 			1111 1001 1001 1001 1111
 
 		*/
-		let one: Vec<f32> = vec![0.1,0.1,0.1,0.9, 0.1,0.9,0.1,0.9, 0.1,0.1,0.1,0.9, 0.1,0.1,0.1,0.9, 0.1,0.1,0.1,0.9];
+		//let one: Vec<f32> = vec![0.1,0.1,0.1,0.9, 0.1,0.9,0.1,0.9, 0.1,0.1,0.1,0.9, 0.1,0.1,0.1,0.9, 0.1,0.1,0.1,0.9];
 		let five: Vec<f32> = vec![0.9,0.9,0.9,0.9, 0.9,0.1,0.1,0.1, 0.9,0.9,0.9,0.9, 0.1,0.1,0.1,0.9, 0.9,0.9,0.9,0.9];
 		let two: Vec<f32> = vec![0.9,0.9,0.9,0.9, 0.1,0.1,0.1,0.9, 0.9,0.9,0.9,0.9, 0.9,0.1,0.1,0.1, 0.9,0.9,0.9,0.9];
 		let seven: Vec<f32> = vec![0.9,0.9,0.9,0.9, 0.1,0.1,0.1,0.9, 0.1,0.1,0.1,0.9, 0.1,0.1,0.1,0.9, 0.1,0.1,0.1,0.9];
@@ -2081,41 +2101,49 @@ fn main() {
 		//return;
 		t.parser("
 		' comment
-		main:  20 -> 2, 2, 2 -> 4, 4 | 2 | 2 -> ^0-1 | 1 | ^1-1 | ^2-2 -> <0> -> De out", &for_create_weight);
+		main:  20 -> 1 -> ^0-0 -> <0> -> De out", &for_create_weight);
 		//let five: Vec<f32> = vec![0.9, 0.9];
 		//let two: Vec<f32> = vec![0.9, 0.1];
 		//let seven: Vec<f32> = vec![0.1, 0.9];
 		let mut ans: f32 = 0.0;
 		let mut s: Vec<f32> = Vec::new();
 		//let mut b: usize = 0;
-		for i in 0..600/*8_000*/ {
-			//if i % 10 == 0 {
+		/*for i in 0..20 {
+
+			ans = t.answer(0, v.clone(), answer_function)[0];
+		}*/
+		for i in 0..100/*8_000*/ {
+			if i % 10 == 0 {
 				println!(" итерация: [{}]", i.clone());
-			//}
+			}
 			let mut rng = rand::thread_rng();
 		    //if rng.gen() { // random bool
 		    let mut f: f32 = rng.gen::<f32>();
 			let h: u8 = rng.gen::<u8>();
 			if h < 100 {
 				v = five.clone();
+				//println!("true");
 			} else if h > 100 && h < 200 {
 				v = two.clone();
+				//println!("false, two");
 			} else if h > 200 {
 				v = seven.clone();
+				//println!("false, seven");
 			}
 			ans = t.answer(0, v.clone(), answer_function)[0];
+			//println!("{:?}\n------------------------", ans);
 			let l_: usize = s.len();
 			//if s[l_ - 1][0] > 0.99 {
 			//	println!("---------------------------------------");
 			//	println!("цикл на котором всё ок: {:?}", i);
 			//	break;
 			//}
-			if h > 100 && h < 200 {
+			if h < 100 {
 				//if ans[l_].0[0] > 0.9 { s.push(0.0); }
 				//b += 1;
-				if ans < 1.0 {
-					t.on_error(0, 0, 20, ans, 1.0, v.clone());	
-				} 
+				//if ans < 1.0 {
+				t.on_error(0, 0, 20, ans, 1.0, v.clone());	
+				//} 
 			} else {
 				//if ans[0] > 0.9 { s.push(1.0); }
 				if ans > 0.5 {
@@ -2126,8 +2154,8 @@ fn main() {
 		let v: Vec<f32> = vec![t.answer(0, five.clone(), answer_function)[0], t.answer(0, two.clone(), answer_function)[0],
 		t.answer(0, seven.clone(), answer_function)[0]];
 		println!("its five:    {}", v[0]);
-		println!("its no five: {}", v[1]);
-		println!("its no five: {}", v[2]);
+		println!("its two:     {}", v[1]);
+		println!("its seven:   {}", v[2]);
 		//let s1= t.answer(0, v.clone(), answer_function);
 		println!("---------------------------------------");
 		//println!("s: |{:?}|", (s.len()/b));

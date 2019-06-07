@@ -146,10 +146,10 @@ pub mod Language{
 				object one = server1 [0]					; принимаем первый параметр с сервера
 				object two = server1 [1]					; принимаем второй параметр с сервера
 
-			    if one == two {
+			    if one == two 
 					send server1	one + two: String		; отправляем ответ серверу в который помещаем сложение строк объектов one и two
 					send server1	ont + two: Float		; отправляем ответ серверу в который помещаем сложение чисел объектов one и two
-				}
+				end
 		*/
 		words.push("else".to_string());//5		// оператор условия, если первое условие не выполнилось
 		/*
@@ -158,12 +158,12 @@ pub mod Language{
 				object one = server1 [0]					; принимаем первый параметр с сервера
 				object two = server1 [1]					; принимаем второй параметр с сервера
 
-			    if one == two {								; если значение one и two равны, то
-					send server1	one + two: String		; отправляем ответ серверу в который помещаем сложение строк объектов one и two
-					send server1	ont + two: Float		; отправляем ответ серверу в который помещаем сложение чисел объектов one и two
-				} else {
+			    if one == two								; если значение one и two равны, то
+					send server1	one + two: string		; отправляем ответ серверу в который помещаем сложение строк объектов one и two
+					send server1	ont + two: float		; отправляем ответ серверу в который помещаем сложение чисел объектов one и two
+				else
 					exit_()									; иначе завершаем приложение
-				}
+				end
 		*/
 
 
@@ -368,6 +368,11 @@ pub mod Language{
 				}				
 			} Err(())
 		}
+		pub fn get_value_to_index(&self, index_: usize) -> Result<String , ()> {
+			if index_ >= self.value_buffer.len() {
+				return Err(());
+			} Ok (self.value_buffer[index_].clone())
+		}
 		pub fn get_index_by_type(&self, mut name: String, types_: usize) -> Result<usize , ()>{
 			//pub fn eq_char_in_string_r(ch: char, mut st: String, symbol_count: usize)->bool{ 
 			if !Words::eq_char_in_string_r('\0', name.clone(), 1){
@@ -428,6 +433,45 @@ pub mod Language{
 				if self.object_buffer[i].1.clone() == types_ { j += 1; }
 			} Err(())
 
+		}
+		pub fn get_index_hight_data(&self, temp_name: String, mut temp_values: String) -> Result<usize, ()> {
+			let mut miss_step: usize = 0;
+			let mut for_array: bool = false;
+			temp_values = temp_values.clone().trim().to_string();
+			if Words::eq_char_in_string('\'' , &temp_values.clone()) || Words::eq_char_in_string('\"' , &temp_values.clone()) {
+				let last_index: usize = temp_values.clone().chars().count() - 1;
+				temp_values.remove(last_index);
+				temp_values.remove(0);
+			}
+			for i in 0..self.object_buffer.len() {
+				if miss_step != 0 {
+					miss_step -= 1;
+					continue;
+				}
+				if for_array {
+					let this_value_var: Vec<&str> = self.object_buffer[i].0.as_str().split('_').collect();
+					if this_value_var.len() > 1 {
+						if temp_values.as_str() == this_value_var[1] {
+							return Ok(i.clone());
+						}
+					} else {
+						if this_value_var[0] == temp_values.as_str() {
+							return Ok(i.clone());
+						}
+					}
+				}
+				let this_variable: Vec<&str> = self.object_buffer[i].0.as_str().split('.').collect();
+				if this_variable.clone().len() > 1 {
+					if temp_name.as_str() != this_variable[0].clone() {
+						miss_step = match this_variable[1].to_string().parse() {
+							Ok(A) => { A },
+							Err(e) => { return Err(()); 0 },
+						};
+					} else {
+						for_array = true;
+					}
+				}
+			} Err(())
 		}
 		// get value from name
 		pub fn get_value(&self, mut name: String) -> Result<&str, ()> {
@@ -509,7 +553,7 @@ pub mod Language{
 			//-----------------------------------------------------------------------------------------------------------------
 			for ch in text.chars() {			
 				//Split(input: String, ch: char) ДЛЯ КОСЯКОВ
-				//println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\nself.value_buffer.len() - {:?}\nself.object_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), self.value_buffer.clone().len(), self.object_buffer.clone());
+				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\ntemp_name - {:?}\nself.value_buffer.len() - {:?}\nself.value_buffer: {:?}\nself.object_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), temp_name.clone(), self.value_buffer.clone().len(), self.value_buffer.clone(), self.object_buffer.clone());
 				if ch == ' ' || ch == '\t' {
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
@@ -575,14 +619,19 @@ pub mod Language{
 							},
 						} temp_buffer = String::new();		
 					}
-                    if last_op[1] == 15 {  
+                    /*if last_op[1] == 15 {  
                         // none
-                    } else if last_op[0] == 3 && last_op[1] == 13 {
+                    } else*/
+					if last_op[0] == 3 && last_op[1] == 13 {
 						temp_buffer.push(ch.clone());					
 					} else if last_op[0] == 3 && last_op[1] == 13 {
 
 					} else if last_op[0] == 24 && last_op[1] == 0 {
 						last_op[1] = 17;
+					} else if last_op[0] == 24 && last_op[1] == 15 && last_op[2] == 0 {
+						temp_values = temp_buffer.clone();
+						last_op[2] = 17;
+						temp_buffer = String::new();
 					} else if last_op[0] == 29 && last_op[1] == 0 && last_op[2] == 0 {
 						temp_values = temp_buffer.clone();
 						last_op[1] = 17;
@@ -757,10 +806,87 @@ pub mod Language{
                         //return 0;
                     } else if last_op[0] == 24 && last_op[1] == 17 && last_op[2] == 0 {
 						temp_buffer += ".0";
-						self.object_buffer.push((temp_buffer, 3));
+						self.object_buffer.push((temp_buffer, 24));
 						self.value_buffer.push(String::new());
 						
 						
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+					} else if last_op[0] == 24 && last_op[1] == 15 && last_op[2] == 17 {
+						// создаём массив
+						let objs_in_array: Vec<&str> = temp_buffer.as_str().trim().split(',').collect();
+						
+						temp_name += ".";
+						temp_name += objs_in_array.len().to_string().as_str();
+
+						self.object_buffer.push((temp_name.clone(), 24));
+						self.value_buffer.push(String::new());
+						
+						let mut tch: bool = false;
+						//let chrs = temp_name.clone().chars();
+						let mut i: usize = 0;
+						let mut deleted_chs: usize = 0;
+						for char_ in temp_name.clone().chars() {
+							if char_ == '.' {
+								tch = true;
+							}
+							if tch {
+								temp_name.remove(i.clone() - deleted_chs);
+								deleted_chs += 1;
+							}
+							i += 1;
+						}
+						
+						temp_name += "_";
+						//println!("\n\n\n--------------\n\n\n{:?}\n\n\n\n\n", objs_in_array.clone());
+						for i in 0..objs_in_array.len() {
+							let temp_name_: String = temp_name.clone() + i.to_string().as_str();
+							self.object_buffer.push((temp_name_, 3));
+							self.value_buffer.push(objs_in_array[i].clone().to_string());
+						}						
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+					} else if last_op[0] == 17 && last_op[1] == 11 && last_op[2] == 15 {
+						// temp_name - имя переменной (структура/массив)
+						// temp_values - имя поля/индекс массива
+						// temp_buffer - новое значение
+						//temp_name += "[";
+						//temp_name += temp_values.clone().as_str();
+						//temp_name += "]";
+						//temp_name += "\0";
+						let u: usize = match self.get_index_hight_data(temp_name.clone(), temp_values.clone()){
+							Ok(A) => { A },
+							Err(e)=> { panic!("попытка присваивания несуществующего значения"); 0 },
+						};
+						let mut to_right_value: String = String::new();
+						let mut to_to_right: Vec<&str> = temp_buffer.as_str().split('[').collect();
+						if to_to_right.len() > 1 {
+							//panic!("зашли");
+							let value__: Vec<&str> = to_to_right[1].split(']').collect();
+							let value__: String = value__.clone()[0].to_string();
+							let name__: String = to_to_right[0].to_string();
+
+							let indx_: usize = match self.get_index_hight_data(name__.clone(), value__.clone()){
+								Ok(A) => { A },
+								Err(e)=> { panic!("попытка присваивания несуществующего значения"); 0 },
+							};
+							to_right_value = match self.get_value_to_index(indx_) {
+								Ok(A) => { A },
+								Err(e)=> { panic!("неизвестная ошибка, код: 88214; обратитесь к pcPowerJG"); String::new() }
+							};
+						} else {
+							to_right_value = temp_buffer.clone();
+						}
+
+						self.value_buffer[u.clone()] = to_right_value.clone();
+						//pub fn get_index_by_type(&self, mut name: String, types_: usize) -> Result<usize , ()>{
+
 						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
 						temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -939,13 +1065,41 @@ pub mod Language{
                             match ch.clone(){
                                 '=' => { 
                                     //println!("зашли");
-                                    temp_values = temp_buffer.clone();
-                                    //println!("{}", temp_values.clone());
-                                    temp_buffer = String::new();
+                                    
                                     if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
+										temp_values = temp_buffer.clone();
+										//println!("{}", temp_values.clone());
+										temp_buffer = String::new();
                                         last_op[0] = 17; last_op[1] = 15;
                                     }
+									if last_op[0] == 24 {
+										last_op[1] = 15;
+										temp_name = temp_buffer.clone();
+										temp_values = String::new();
+										temp_buffer = String::new();
+									} else if last_op[0] == 17 && last_op[1] == 11 && last_op[2] == 0 {
+										last_op[2] = 15;
+									}
                                 }, 
+								'[' => {
+									if last_op[0] == 0 {
+										last_op[0] = 17;
+										last_op[1] = 10;										
+										temp_name = temp_buffer.clone();
+										temp_buffer = String::new();
+									} else if last_op[0] == 17 && last_op[1] == 11 && last_op[2] == 15 {
+										temp_buffer.push(ch.clone());
+									}
+								},
+								']' => {
+									if last_op[0] == 17 && last_op[1] == 10 && last_op[2] == 0 {
+										last_op[1] = 11;
+										temp_values = temp_buffer.clone();
+										temp_buffer = String::new();
+									} else if last_op[0] == 17 && last_op[1] == 11 && last_op[2] == 15 {
+										temp_buffer.push(ch.clone());
+									}
+								},
 							    _ => { 
 									if ch == '\n' { } else {
 										temp_buffer.push(ch.clone()); 
@@ -1338,12 +1492,12 @@ pub mod Language{
                 result += item.to_string().as_str();
                 result.push(',');
             }
-	    if result.clone().chars().count() > 1 { 
-	    	result.remove(result.clone().chars().count() - 1);
-	    }
+			if result.clone().chars().count() > 1 { 
+				result.remove(result.clone().chars().count() - 1);
+			}
             result.push('}'); result.push('\0'); result
         }
-}
+	}
 	impl Net{
 		pub fn debug(&self){ for item in &self.data_base { println!(" neyron -> {:?}", item.debug()); } }
 		pub fn neyron_from_string(&mut self, index: usize, mut st: String){

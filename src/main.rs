@@ -54,8 +54,14 @@ end
 object other =other object\0
 print other
 
+func function(arg1, arg2)\n
+        print arg1\n
+end_func\n
 
-object objoth
+array ar = first, second, tree
+str1[\"hello\"] = 123\n
+ar[0] = ar[1]\n
+object objoth\n
 ".to_string());
 	//o.unsafe_print_bufs_and_vals();	
     //dbg!(o.get_value("obj2".to_string()));

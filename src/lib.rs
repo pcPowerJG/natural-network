@@ -110,7 +110,7 @@ pub mod Language{
         	neural_network: Net,        			  		  // сама сеть
 			servers: Vec<ServersModule::Thread>,              // сервера
 			//buffer_action: Vec<[usize; 3]>,                 // буффер для действий
-			object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
+			object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура, 10 - функция
 	        value_buffer: Vec<String>,                        // значения 
 	}
 	pub fn on_create() -> Words {
@@ -657,14 +657,18 @@ pub mod Language{
 							},
 						} 
 						if !func_inactive && action != 34 {
-							temp_buffer = String::new();
+							//temp_buffer = String::new();
 							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
-							temp_buffer = String::new();
+							temp_buffer = String::new();							
 							temp_values = String::new();
 							temp_name = String::new();
 							continue;
-						} else !func_inactive && action == 34 {
-							func_inactive = true;
+						} else if !func_inactive && action == 34 {
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
 						}
 						temp_buffer = String::new();								
 					}
@@ -720,13 +724,41 @@ pub mod Language{
 						// name_func | arg | arg1 | ... | argN
 						// порядковый номер энтера '\n'
 
+						let args_: Vec<&str> = temp_values.as_str().split(',').collect();
+
+						for arg_ in args_ {
+							temp_name.push('|');
+							temp_name += arg_;
+						}
+
+						self.object_buffer.push((temp_name.clone(), 10));
+						self.value_buffer.push(this_row.to_string());
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
 						// а управлять через другую переменную, грубо говоря если 
-						panic!("работает?!");
+						func_inactive = false;
+						continue;
+						//panic!("работает?!");
 					} else { continue; }					 
 				} else if ch == '\n' {
 					this_row += 1;
 					// код осуществляющий работу
-					
+					//
+					if !func_inactive {
+						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
+						if action == 34 {
+							func_inactive = true;
+						}
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+					}
+					//
 					if last_op[0] == 2 && last_op[1] == 15 {
                         //println!("name {}", temp_name.clone());
                         self.object_buffer.push((temp_name.clone(), 2));
@@ -986,7 +1018,27 @@ pub mod Language{
 							
 						}
 					} else if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 33 {
+						// name_func | arg | arg1 | ... | argN
+						// порядковый номер энтера '\n'
+
+						let args_: Vec<&str> = temp_values.as_str().split(',').collect();
+
+						for arg_ in args_ {
+							temp_name.push('|');
+							temp_name += arg_;
+						}
+
+						self.object_buffer.push((temp_name.clone(), 10));
+						self.value_buffer.push(this_row.to_string());
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+						// а управлять через другую переменную, грубо говоря если 
 						func_inactive = false;
+						continue;
+						//panic!("работает?!");
 					} else {
 						continue;
 					}

@@ -192,14 +192,12 @@ pub mod Language{
 
 		*/
 		words.push("exit_()".to_string());//19//выход из приложения
-		words.push("funct".to_string());//20//инициализация функции (param PARAM_NAME [PARAM_COUNT]) для приёма с сервера
+		words.push("func".to_string());     //20//инициализация функции (param PARAM_NAME [PARAM_COUNT]) для приёма с сервера
 		/*
 			ПРИМЕР:
-				param parametrs [2]							; создаём 2 параметра
-				serv server1 = 192.168.0.1:8085				; создаём сервер
-				server1 -> parametrs						; помещаем значения параметров в 'parametrs'
-
-				object obj1 = parametrs [0]					; помещаем значение первого параметра в 'obj1'
+				func func(objc)								; создаём функцию
+					print objc
+				end_func
 				
 		*/
 		
@@ -250,7 +248,7 @@ pub mod Language{
 		/**/
 		words.push("string".to_string()); //27 // создание переменной типа String
 		/**/
-		words.push("neyron".to_string()); //28 // создание нейрона
+		words.push("void".to_string());   //28 // тип void, для функций без параметров
 		/**/
 		words.push("struct".to_string()); //29 // создание структуры
 		/*
@@ -272,6 +270,20 @@ pub mod Language{
 		*/
 		words.push("network".to_string());//32// для сети
 		words.push("end".to_string());//33//end operation
+		words.push("end_func".to_string()); // 34 // конец функции
+		/*
+			func func(void)
+
+			end_func
+			
+		*/ // 20 - fn, 34 - end_fn, 28 - void
+		words.push("EOF_PROGRAMM".to_string());
+		/*
+			для сборщика, чтоб обнулять все счетчики строк
+			потому что размера типа usize может не хватить на огромную кодовую базу
+			и каждые 1_000_000 < this_row <= 1_500_000 будет стоять эта операция 
+			// при last_op = [0, 0, 0];
+		*/
 		Words{ words: words,  neural_network: new(), servers: Vec::new(), object_buffer: Vec::new(), value_buffer: Vec::new() }
 	}
 	//impl
@@ -544,7 +556,10 @@ pub mod Language{
 			let mut temp_name:	 String = String::new();			//	...
 			let mut temp_buffer: String = String::new();			//	...
 			//let mut temp_usize_value: usize = 0;
-
+			let mut func_inactive: bool = true;
+			let mut this_row: usize = 0;
+			let mut call_func: bool = false;
+			let mut buffer_this_row: usize = 0;			
 
 			let mut temp_weight_vec: Vec<f32> = Vec::new();			//	...
 			
@@ -596,7 +611,7 @@ pub mod Language{
 								//value_buffer: Vec<String>, // значения 
 							},
 							33 => { // end
-								if last_op[0] == 29 {
+								if last_op[0] == 29 { // wtf?
 									let insert_to: usize = self.value_buffer.len() - last_op[2];
 									// pub fn insert(&mut self, index: usize, element: T)
 									temp_values.push('.');
@@ -611,21 +626,52 @@ pub mod Language{
 									temp_values = String::new();
 									temp_name = String::new();
 								}
+							},							
+							// 20 - fn, 34 - end_fn, 28 - void
+							// to fn
+							20 => {
+								last_op[0] = 20;
+								temp_buffer = String::new();
+								temp_values = String::new();
+								temp_name = String::new();
 							},
+							34 => {
+								last_op[0] = 34;
+								temp_buffer = String::new();
+								temp_values = String::new();
+								temp_name = String::new();
+							}, 
+							28 => {
+								last_op[0] = 28;
+								temp_buffer = String::new();
+								temp_values = String::new();
+								temp_name = String::new();
+							},
+							// end to fn
+
 							//words.push("struct".to_string()); //29 // создание структуры
 							//words.push("end".to_string());//33//end operation
 							_ => {
 								
 							},
-						} temp_buffer = String::new();		
+						} 
+						if !func_inactive && action != 34 {
+							temp_buffer = String::new();
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_values = String::new();
+							temp_name = String::new();
+							continue;
+						} else !func_inactive && action == 34 {
+							func_inactive = true;
+						}
+						temp_buffer = String::new();								
 					}
                     /*if last_op[1] == 15 {  
                         // none
                     } else*/
 					if last_op[0] == 3 && last_op[1] == 13 {
 						temp_buffer.push(ch.clone());					
-					} else if last_op[0] == 3 && last_op[1] == 13 {
-
 					} else if last_op[0] == 24 && last_op[1] == 0 {
 						last_op[1] = 17;
 					} else if last_op[0] == 24 && last_op[1] == 15 && last_op[2] == 0 {
@@ -666,9 +712,20 @@ pub mod Language{
 							temp_buffer = String::new();
 						}
 						
+					} else if last_op[0] == 20 && last_op[1] == 0 && last_op[2] == 0 {
+						// 20 - fn, 34 - end_fn, 28 - void						
+						last_op[1] = 17;
+					} else if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 33 {
+						// name_func | arg | arg1 | ... | argN
+						// порядковый номер энтера '\n'
+
+						// а управлять через другую переменную, грубо говоря если 
+						panic!("работает?!");
 					} else { continue; }					 
 				} else if ch == '\n' {
+					this_row += 1;
 					// код осуществляющий работу
+					
 					if last_op[0] == 2 && last_op[1] == 15 {
                         //println!("name {}", temp_name.clone());
                         self.object_buffer.push((temp_name.clone(), 2));
@@ -927,6 +984,8 @@ pub mod Language{
 							temp_name = String::new();
 							
 						}
+					} else if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 33 {
+						func_inactive = false;
 					} else {
 						continue;
 					}
@@ -1099,6 +1158,24 @@ pub mod Language{
 									} else if last_op[0] == 17 && last_op[1] == 11 && last_op[2] == 15 {
 										temp_buffer.push(ch.clone());
 									}
+								},
+								'(' => {
+									if last_op[0] == 20 && last_op[1] == 17 {
+										last_op[2] = 17;
+										//temp_values = temp_buffer.clone();
+										temp_name = temp_buffer.clone().as_str().trim().to_string();
+										temp_buffer = String::new();
+										continue;
+									}
+									temp_buffer.push(ch.clone());
+								},
+								')' => {
+									if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 17 {
+										temp_values = temp_buffer.clone();
+										last_op[2] = 33;
+										continue;
+									}
+									temp_buffer.push(ch.clone());
 								},
 							    _ => { 
 									if ch == '\n' { } else {

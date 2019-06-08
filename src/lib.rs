@@ -277,7 +277,8 @@ pub mod Language{
 			end_func
 			
 		*/ // 20 - fn, 34 - end_fn, 28 - void
-		words.push("EOF_PROGRAMM".to_string());
+		words.push("call-fn[zZaZ]~(kJmN)->".to_string()); // 35 // служебное, только для вызова функции
+		words.push("EOF_PROGRAMM".to_string()); // 36 
 		/*
 			для сборщика, чтоб обнулять все счетчики строк
 			потому что размера типа usize может не хватить на огромную кодовую базу

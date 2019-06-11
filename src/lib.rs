@@ -391,9 +391,10 @@ pub mod Language{
 			let mut cell_name: String = String::new();
 			let mut i: usize = self.object_buffer.len() - 1;
 			loop {
-			//for i in 0..self.object_buffer.len() {
+				//for i in 0..self.object_buffer.len() {
 				if search != 0 { 
 					search -= 1;
+					i -= 1;
 					continue;
 				}
 				if flag == true {
@@ -405,6 +406,14 @@ pub mod Language{
 				}							
 				let (name_, type_) = &self.object_buffer[i];
 				let v: Vec<&str> = name_.split('.').collect();
+				if *type_ != 1 {
+					// сложный тип данных
+					if i == 0 {
+						return Err(());
+					}
+					i -= 1; 
+					continue;
+				}
 				//println!("{:?}", v.clone());
 				if v.len() == 1 {					
 					if *name_ == name || (*name_ == cell_name && cell_name != String::new()) {
@@ -412,7 +421,13 @@ pub mod Language{
 					} 					
 				} else {
 					let index_if: Vec<&str> = name.split('[').collect();
-					if v[0].to_string() != index_if[0].to_string() { continue; }
+					if v[0].to_string() != index_if[0].to_string() { 
+						/*println!("\n\n\n");
+						println!("name: {:?}", index_if.clone());
+						println!("name_: {:?}", v.clone());*/
+						i -= 1; 
+						continue; 
+					}
 					
 					
 					//let mut index_count: usize = 0;
@@ -526,41 +541,50 @@ pub mod Language{
 		pub fn get_index_hight_data(&self, temp_name: String, mut temp_values: String) -> Result<usize, ()> {
 			let mut miss_step: usize = 0;
 			let mut for_array: bool = false;
-			temp_values = temp_values.clone().trim().to_string();
-			if Words::eq_char_in_string('\'' , &temp_values.clone()) || Words::eq_char_in_string('\"' , &temp_values.clone()) {
-				let last_index: usize = temp_values.clone().chars().count() - 1;
-				temp_values.remove(last_index);
-				temp_values.remove(0);
-			}
-			for i in 0..self.object_buffer.len() {
-				if miss_step != 0 {
-					miss_step -= 1;
-					continue;
+			if temp_values != "".to_string() {
+				temp_values = temp_values.clone().trim().to_string();
+				if Words::eq_char_in_string('\'' , &temp_values.clone()) || Words::eq_char_in_string('\"' , &temp_values.clone()) {
+					let last_index: usize = temp_values.clone().chars().count() - 1;
+					temp_values.remove(last_index);
+					temp_values.remove(0);
 				}
-				if for_array {
-					let this_value_var: Vec<&str> = self.object_buffer[i].0.as_str().split('_').collect();
-					if this_value_var.len() > 1 {
-						if temp_values.as_str() == this_value_var[1] {
-							return Ok(i.clone());
-						}
-					} else {
-						if this_value_var[0] == temp_values.as_str() {
-							return Ok(i.clone());
+				for i in 0..self.object_buffer.len() {
+					if miss_step != 0 {
+						miss_step -= 1;
+						continue;
+					}
+					if for_array {
+						let this_value_var: Vec<&str> = self.object_buffer[i].0.as_str().split('_').collect();
+						if this_value_var.len() > 1 {
+							if temp_values.as_str() == this_value_var[1] {
+								return Ok(i.clone());
+							}
+						} else {
+							if this_value_var[0] == temp_values.as_str() {
+								return Ok(i.clone());
+							}
 						}
 					}
-				}
-				let this_variable: Vec<&str> = self.object_buffer[i].0.as_str().split('.').collect();
-				if this_variable.clone().len() > 1 {
-					if temp_name.as_str() != this_variable[0].clone() {
-						miss_step = match this_variable[1].to_string().parse() {
-							Ok(A) => { A },
-							Err(e) => { return Err(()); 0 },
-						};
-					} else {
-						for_array = true;
+					// разделить поиск, вначале по структурам (так как они чаще всего НЕ встречаются)
+					// и находятся в глобальной области видимости
+					// а потом по массивам
+					let this_variable: Vec<&str> = self.object_buffer[i].0.as_str().split('.').collect();
+					if this_variable.clone().len() > 1 {
+						if temp_name.as_str() != this_variable[0].clone() {
+							miss_step = match this_variable[1].to_string().parse() {
+								Ok(A) => { A },
+								Err(e) => { return Err(()); 0 },
+							};
+						} else {
+							for_array = true;
+						}
 					}
-				}
-			} Err(())
+				} 
+			} else {
+				// в случае если не передан никакой доп парамерт, то возвращаем
+				// индекс начала массива
+			}			
+			Err(())
 		}
 		pub fn get_value_from_name(&self, name: String) -> Result<String, ()> {
 			let what_is_that: Vec<&str> = name.as_str().trim().split('[').collect();
@@ -1051,7 +1075,7 @@ pub mod Language{
 						self.value_buffer.push(String::new());// было: temp_buffer.clone()
 						self.object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 						//  i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3])
-						
+						//println!("self.object_buffer: ", self.object_buffer.clone());
 						last_op[0] = 17; last_op[1] = 15; last_op[2] = 0;
                         
                         
@@ -1551,13 +1575,18 @@ pub mod Language{
 
         pub fn i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3]) {
 			let mut where_two_obj: bool = false;            		
-			let mut index_first_object: usize = match self.get_index(temp_values.clone()){
+			let mut index_first_object: usize = match self.get_index_r(temp_values.clone()){
 				Ok(A) => A,
 				Err(e) => { panic!("first variable not found!!"); 0 },
 			};
-			let mut index_second_object: usize = match self.get_index(temp_buffer.clone()){
+			let mut index_second_object: usize = match self.get_index_r(temp_buffer.clone()){
 				Ok(A) => { where_two_obj = true; A },
-				Err(e) => { 0 },
+				Err(e) => { 
+
+					
+
+					0 
+				},
 			};
 			
 			let mut two_value_betwen_space: usize = 0;

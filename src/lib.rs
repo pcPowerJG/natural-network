@@ -379,7 +379,84 @@ pub mod Language{
 				}				
 			} Err(())
 		}
-		
+		pub fn get_index_r(&self, mut name: String) -> Result<usize , ()> {
+			if !Words::eq_char_in_string_r('\0', name.clone(), 1){
+				name = name.clone().as_str().trim().to_string(); // проверяем на признак конца строки..
+			} else { return Err(()); }
+			//println!("name: {}", name.clone());
+			let mut search: usize = 0; 
+			let mut flag: bool = false;
+			let mut struct_count: usize = 0;
+
+			let mut cell_name: String = String::new();
+			let mut i: usize = self.object_buffer.len() - 1;
+			loop {
+			//for i in 0..self.object_buffer.len() {
+				if search != 0 { 
+					search -= 1;
+					continue;
+				}
+				if flag == true {
+					return Ok(i);
+				}	
+				if struct_count != 0 && cell_name != String::new() {
+					struct_count -= 1;
+					if struct_count == 0 { panic!("Var in struct not found. Code 404_3"); }
+				}							
+				let (name_, type_) = &self.object_buffer[i];
+				let v: Vec<&str> = name_.split('.').collect();
+				//println!("{:?}", v.clone());
+				if v.len() == 1 {					
+					if *name_ == name || (*name_ == cell_name && cell_name != String::new()) {
+						return Ok(i);
+					} 					
+				} else {
+					let index_if: Vec<&str> = name.split('[').collect();
+					if v[0].to_string() != index_if[0].to_string() { continue; }
+					
+					
+					//let mut index_count: usize = 0;
+					if index_if.len() > 1 { 
+						let index_if: Vec<&str> = index_if[1].split(']').collect();
+						println!("{:?}", index_if.clone());
+						let mut cell: Sstring = Sstring::new();
+						cell.from_string(index_if[0].clone().to_string());
+						if index_if.len() > 1 {
+							if !Words::eq_char_in_string('\"', &index_if[0].to_string()) { 
+								//"
+								search = match index_if[0].clone().parse() {
+									Ok(A) => { A },
+									Err(e) => { panic!("Index array error. Code 404_1"); 0 }
+								};
+								flag = true;
+							} else {
+								// структура
+								// через цикл вывести имя поля, проверить есть ли ']' в конце
+								// и вытащить номер
+								// будем считать что на вход передано обращение без пробелов (то бишь без имя [10]
+								// либо name ["asasas" ] ; struct1["name"]
+								// память имена: имя.колво, имя_поля, имя_поля, имя_поля, ... , прочие_имена
+								// память значения: "", "значение_1", "значение2", "значение3", ... , "прочие_значения"
+								let len: usize = cell.len();
+								if len < 2 { panic!("Cell in Struct error. Code 404_2"); }
+								cell.remove(len-1);
+								cell.remove(0);
+								cell_name = cell.to_string();
+								struct_count = match v[1].clone().trim().parse() { 
+									Ok(A) => A,
+									Err(e) => { panic!("memory array error. Code 201"); 0 },
+								}; struct_count += 1;
+							}
+						}
+					}									
+				}
+				if i == 0 {
+					return Err(());
+				}
+				i -= 1;				
+			} 
+			Err(())
+		}
 		pub fn get_value_to_index(&self, index_: usize) -> Result<String , ()> {
 			if index_ >= self.value_buffer.len() {
 				return Err(());
@@ -596,6 +673,26 @@ pub mod Language{
 			} Err(())
 		}      
 		
+		pub fn search_fn(&self, temp_name: String) -> Result<String, ()> {
+			for i in 0..self.object_buffer.len().clone() {
+				let temp_: Vec<&str> = self.object_buffer[i].0.as_str().trim().split('|').collect();
+				if temp_[0].clone().to_string() == temp_name.clone() {
+					return Ok(self.object_buffer[i].clone().0);
+				}
+			} Err(())
+		}
+
+		pub fn remove_some_objects(&mut self, name_args_in_f: Vec<&str>) {
+			for i in 0..name_args_in_f.len() {
+				let indx: usize = match self.get_index_r(name_args_in_f[i].to_string()){
+					Ok(A) => { A },
+					Err(e)=> { return; 0 },
+				};
+				self.value_buffer.remove(indx.clone());
+				self.object_buffer.remove(indx.clone());
+			}
+		}
+
 		pub fn get_(&mut self, text: String, mut call_to_fn: String) -> u8 {
 						
 			//let mut variables_name: Vec<String> = Vec::new();
@@ -758,6 +855,7 @@ pub mod Language{
 							temp_values = String::new();
 							temp_name = String::new();
 						} else if fn_active && action == 34 {
+							//println!("вышли");
 							return 1;
 						}
 						temp_buffer = String::new();								
@@ -844,7 +942,10 @@ pub mod Language{
 					//					 	
 					if call_func {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
-						if action == 34 {
+						if action == 34 && fn_active {
+							//name_args_in_f: Vec<&str> // в нём добавленные объекты
+							self.remove_some_objects(name_args_in_f.clone());
+							//println!("вышли");
 							return 1;
 						}
 						if !fn_active { 
@@ -858,6 +959,15 @@ pub mod Language{
 								let call_to_fn: String = call_to_fn[0].to_string();
 								if temp_name == call_to_fn {									
 									fn_active = true;
+									println!("{:?}", temp_name.clone());
+									//panic!("ннашли");
+									last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+									temp_buffer = String::new();
+									temp_weight_vec = Vec::new();
+									temp_values = String::new();
+									temp_name = String::new();
+									continue;
+								} else {
 									last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
 									temp_buffer = String::new();
 									temp_weight_vec = Vec::new();
@@ -974,8 +1084,14 @@ pub mod Language{
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                     } else if last_op[0] == 22 && last_op[1] == 0 && last_op[2] == 0 {
                         // remove
+						// переделать под массивы и структуры. сделать проверку типов, все дела..
+						// может быть: remove struct["row"]
+						// либо: remove array[0]
+						// либо: remove object
+						// надо всё учитывать
                         for i in 0..self.value_buffer.len() {
-                            if self.object_buffer[i].0 == temp_values {
+							let name_: Vec<&str> = self.object_buffer[i].0.trim().split('.').collect();
+                            if name_[0] == temp_values {
                                 self.value_buffer.remove(i);
                                 self.object_buffer.remove(i);
                                 break;
@@ -1173,6 +1289,40 @@ pub mod Language{
 						func_inactive = false;
 						continue;
 						//panic!("работает?!");
+					} else if last_op[0] == 35 && last_op[1] == 35 && last_op[2] == 35 {						
+						let args_: Vec<&str> = temp_values.trim().split(',').collect();
+						let mut run_row: String = String::new();
+						//function|other|other;arg1|arg2
+						run_row += temp_name.as_str();
+						for i in 0..args_.len() {
+							run_row.push('|');
+							run_row += args_[i].clone();
+						}
+						run_row.push(';');
+						let args_in_fn: String = match self.search_fn(temp_name.clone()){
+							Ok(A) => { A },
+							Err(e)=> { panic!("нет такой функции"); String::new() },
+						};
+						//println!("{:?}", args_in_fn);
+						//panic!("stop");
+						let args_: Vec<&str> = args_in_fn.trim().split('|').collect();
+						for i in 1..args_.len() {
+							run_row += args_[i].clone();
+							run_row.push('|');
+						}
+						let len_: usize = run_row.clone().chars().count() - 1;
+						run_row.remove(len_);
+						println!("{:?}", run_row);
+						//pub fn get_(&mut self, text: String, mut call_to_fn: String) -> u8
+						if self.get_(text.clone(), run_row.clone()) != 1 {
+							panic!("внутренняя ошибка вызова функции");
+						}
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+						//panic!("stop");
 					} else {
 						continue;
 					}
@@ -1357,8 +1507,13 @@ pub mod Language{
 										temp_name = temp_buffer.clone().as_str().trim().to_string();
 										temp_buffer = String::new();
 										continue;
-									} else if last_op[0] == 0 {
-										
+									} else if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
+										//panic!("вызов функции");
+										// 35 // служебное, только для вызова функции
+										last_op[0] = 35;
+										temp_name = temp_buffer.clone().as_str().trim().to_string();
+										temp_buffer = String::new();
+										continue;
 									}																
 									temp_buffer.push(ch.clone());
 								},
@@ -1367,7 +1522,13 @@ pub mod Language{
 										temp_values = temp_buffer.clone();
 										last_op[2] = 33;
 										continue;
-									}
+									} else if last_op[0] == 35 {
+										temp_values = temp_buffer.clone();
+										last_op[1] = 35; 
+										last_op[2] = 35;
+										//panic!("в функции");
+										continue;
+									}									
 									temp_buffer.push(ch.clone());
 								},
 							    _ => { 

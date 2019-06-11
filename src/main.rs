@@ -58,11 +58,30 @@ func function(arg1, arg2)\n
         print arg1\n
 end_func\n
 
-array ar = first, second, tree
+
+array ar = first, second, tree\n
 str1[\"hello\"] = 123\n
 ar[0] = ar[1]\n
+ar[1] = str1[\"hello\"]
 object obj_oth\n
-".to_string());
+".to_string(), "".to_string());
+o.get_("
+struct str1
+	object hello
+	object hello1
+	object hello2
+	object hello3
+	object hello4
+end
+object other =other object\0
+print other
+
+func function(arg1, arg2)\n
+        print arg1\n
+        print arg2\n        
+end_func\n
+array ar = first, second, tree\n
+".to_string(), "function|other|other;arg1|arg2".to_string());
 	//o.unsafe_print_bufs_and_vals();	
     //dbg!(o.get_value("obj2".to_string()));
 

@@ -51,7 +51,7 @@ struct str1
 	object hello3
 	object hello4
 end
-object other =other object\0\n
+object other =other object\n
 print other
 
 func fn(arg1)\n
@@ -67,11 +67,13 @@ function(other, other)\n
 array ar =one,two,tree\n
 str1[\"hello\"] = ar[0]\n
 ar[0] =other\n
+str1[\"hello\"] = ar[0]\n
 ar[0] = for_other\0\n
 other = ar[0]\n
 other =ar_0,ar_1\n
 ar = other\n
-other = (1.10 + 2 + 3 * 6)\n
+object ot1=20.55\n
+other = 1.10 + ot1 + 3 * 6 : math\n
 ".to_string(), "".to_string());
 	//o.unsafe_print_bufs_and_vals();	
     //dbg!(o.get_value("obj2".to_string()));

@@ -1,0 +1,12 @@
+[package]
+name = "ThRustGorge"
+version = "0.1.0"
+authors = ["pcPowerJG <koito_tyan@mail.ru>"]
+edition = "2018"
+build = "build.rs"
+
+[dependencies]
+libc="0.2"
+
+[build-dependencies]
+cc = "1.0"

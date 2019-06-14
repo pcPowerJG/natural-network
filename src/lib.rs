@@ -5,6 +5,10 @@ use std::sync::Mutex;
 use std::str;
 
 use std::net::TcpStream;
+
+extern crate libc;
+use libc::size_t;
+
 pub mod ServersModule {
     pub struct Thread {
 	    id: usize,
@@ -104,8 +108,18 @@ pub mod NeuralNetwork{
 #[warn(non_snake_case)]
 #[warn(dead_code)]
 pub mod Language{
-    	use crate::ServersModule;	
+    use crate::ServersModule;	
 	use crate::sstring::*;
+	extern crate libc;
+	use libc::size_t;
+	use std::ffi::CString;
+	use std::ptr;
+
+	#[link(name = "math")]
+	extern {
+		fn eval(text: *const libc::c_char)->f32;
+	}
+	
 	// endpointautomate
 	use std::net::*;
 	pub struct Words{
@@ -135,10 +149,8 @@ pub mod Language{
 		/*
 			значение этого типа можно использовать как и где угодно. 
 			ПРИМЕР1, импользование значения типа object для динамического создания сервера 
-
 				serv server1 = 192.168.0.1:8085				; создаём сервер, чтобы принять парамерты
 				object server2_text = 192.168.0.1:8085		; принимаем первый параметр с сервера и помещаем его значение в объект server2_text
-
 				server1 = server2_text						; создаём второй сервер на ip и порту полученному с параметра 
 		*/
 				
@@ -148,7 +160,6 @@ pub mod Language{
 				serv server1 = 192.168.0.1:8085				; создаём сервер, чтобы принять парамерты
 				object one = server1 [0]					; принимаем первый параметр с сервера
 				object two = server1 [1]					; принимаем второй параметр с сервера
-
 			    if one == two 
 					send server1	one + two: String		; отправляем ответ серверу в который помещаем сложение строк объектов one и two
 					send server1	ont + two: Float		; отправляем ответ серверу в который помещаем сложение чисел объектов one и two
@@ -160,7 +171,6 @@ pub mod Language{
 				serv server1 = 192.168.0.1:8085				; создаём сервер, чтобы принять парамерты
 				object one = server1 [0]					; принимаем первый параметр с сервера
 				object two = server1 [1]					; принимаем второй параметр с сервера
-
 			    if one == two								; если значение one и two равны, то
 					send server1	one + two: string		; отправляем ответ серверу в который помещаем сложение строк объектов one и two
 					send server1	ont + two: float		; отправляем ответ серверу в который помещаем сложение чисел объектов one и two
@@ -192,7 +202,6 @@ pub mod Language{
 				serv server1 = 192.168.0.1:8085				; создаём сервер на данном ip:port
 				object obj_to_send = Привет Мир				; создаём объект со значением
 				send server1 obj_to_send					; отправляем текст "Привет Мир" на сервер
-
 		*/
 		words.push("exit_()".to_string());//19//выход из приложения
 		words.push("func".to_string());     //20//инициализация функции (param PARAM_NAME [PARAM_COUNT]) для приёма с сервера
@@ -210,9 +219,7 @@ pub mod Language{
 				param parametrs [2]							; создаём 2 параметра
 				serv server1 = 192.168.0.1:8085				; создаём сервер
 				server1 -> parametrs						; помещаем значения параметров в 'parametrs'
-
 				object obj1 = parametrs [0]					; помещаем значение первого параметра в 'obj1'
-
 				print obj1									; печатаем на консоль значение объекта 'obj1'
 		*/
 		words.push("remove".to_string());//22 //удаление
@@ -234,11 +241,9 @@ pub mod Language{
 			ПРИМЕР:
 				object obj1
 				object obj2
-
 				array name_.size 
 				; реализация в памяти
 				array ar1 = { obj1, obj2, "hello, world" }
-
 				print ar1[1]
 				; print ''
 				print ar1[2]
@@ -276,7 +281,6 @@ pub mod Language{
 		words.push("end_func".to_string()); // 34 // конец функции
 		/*
 			func func(void)
-
 			end_func
 			
 		*/ // 20 - fn, 34 - end_fn, 28 - void
@@ -679,7 +683,6 @@ pub mod Language{
 				let value__: Vec<&str> = to_to_right[1].split(']').collect();
 				let value__: String = value__.clone()[0].to_string();
 				let name__: String = to_to_right[0].to_string();
-
 				let indx_: usize = match self.get_index_hight_data(name__.clone(), value__.clone()){
 					Ok(A) => { A },
 					Err(e)=> { panic!("попытка присваивания несуществующего значения"); 0 },
@@ -691,7 +694,6 @@ pub mod Language{
 			} else {
 				to_right_value = temp_buffer.clone();
 			}
-
 			self.value_buffer[u.clone()] = to_right_value.clone();
 			*/
 			
@@ -1454,7 +1456,7 @@ pub mod Language{
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
 				match action {					// self.object_buffer (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 					17 => { 
-						if (ch == ' ' || ch == '\t' ) && (last_op[1] != 15 || last_op[1] != 11) { 
+						if (ch == ' ' || ch == '\t' ) && (last_op[1] != 15 && last_op[1] != 11) { 
 							// else {
 								continue; 
 							//}
@@ -1670,7 +1672,133 @@ pub mod Language{
 			//println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug()); // ДЛЯ КОСЯКОВ
             0 // вывод 
 		}
-
+		fn trim<'a>(text: String, to_: &'a str) -> String {
+			let to_: String = to_.to_string();
+			let mut result_: String = String::new();
+			for ch in text.chars() {
+				let mut t: bool = false;
+				for ch1 in to_.chars() {
+					if ch == ch1 {
+						t = true;
+					}
+				}
+				if !t {
+					result_.push(ch.clone());
+				}
+			} result_
+		}
+		pub fn is_math(&self, st: String) -> bool {
+			let math_in: Vec<&str> = st.as_str().trim().split(':').collect();
+			//println!("math_in: {:?}", math_in.clone());
+			if math_in.len() <= 1 { return false; }
+			match math_in[1].trim() {
+				"digit" => { return true },
+				"float" => { return true },
+				"string" => { return true },
+				"str" => { return true },
+				"math" => { return true },
+				_ => { return false },
+			}
+		}
+		pub fn math_formating(&self, from_math_row: String) -> (String, u8) {
+			println!("trim_row_: {:?}", Words::trim(from_math_row.clone(), " \t\n"));
+			let from_math_row: Vec<&str> = from_math_row.as_str().split(':').collect();
+			let from_math_row: String = from_math_row[0].to_string().clone();
+			let trim_row_: String = Words::trim(from_math_row.clone(), " \t\n");
+			let mut variable_: String = "".to_string();
+			let mut result_row: String = String::new();
+			let mut result_type: u8 = 0;
+			for ch in trim_row_.chars() {
+				match ch {
+					'('|')'|'+'|'-'|'*'|'/' => {
+						if variable_ == "".to_string() {
+							//
+						} else {
+							let temp_: Vec<&str> = variable_.as_str().split('[').collect();
+							if temp_.len() == 1 {
+								let mut b: bool = false;
+								let indx: usize = match self.get_index_hight_data(temp_[0].to_string().clone(), "".to_string()) {
+									Ok(A) => { b = true; A },
+									Err(e)=> { 0 },
+								};
+								if b {
+									let value_: String = match self.get_value_to_index(indx) {
+										Ok(A) => { A },
+										Err(e)=> { panic!("что-то пошло не так, ошибка математики. ошибка 450"); String::new() },
+									};
+									result_row += value_.as_str();
+								} else {
+									result_row += variable_.as_str().clone();
+									result_type = 1;
+								}
+							} else {
+								let temp_t: Vec<&str> = temp_[1].split(']').collect();
+								let mut b: bool = false;
+								let indx: usize = match self.get_index_hight_data(temp_[0].to_string().clone(), temp_t[0].to_string().clone()) {
+									Ok(A) => { b = true; A },
+									Err(e)=> { 0 },
+								};
+								if b {
+									let value_: String = match self.get_value_to_index(indx) {
+										Ok(A) => { A },
+										Err(e)=> { panic!("что-то пошло не так, ошибка математики. ошибка 450"); String::new() },
+									};
+									result_row += value_.as_str();
+								} else {
+									result_row += variable_.as_str().clone();
+									result_type = 1;
+								}
+							}
+						}
+						variable_ = "".to_string();
+						result_row.push(ch.clone());
+					},
+					_ => { variable_.push(ch.clone()); },
+				}
+			}
+			if variable_ == "".to_string() {
+							//
+			} else {
+				let temp_: Vec<&str> = variable_.as_str().split('[').collect();
+				if temp_.len() == 1 {
+					let mut b: bool = false;
+					let indx: usize = match self.get_index_hight_data(temp_[0].to_string().clone(), "".to_string()) {
+						Ok(A) => { b = true; A },
+						Err(e)=> { 0 },
+					};
+					if b {
+						let value_: String = match self.get_value_to_index(indx) {
+							Ok(A) => { A },
+							Err(e)=> { panic!("что-то пошло не так, ошибка математики. ошибка 450"); String::new() },
+						};
+						result_row += value_.as_str();
+					} else {
+						result_row += variable_.as_str().clone();
+						result_type = 1;
+					}
+				} else {
+					let temp_t: Vec<&str> = temp_[1].split(']').collect();
+					let mut b: bool = false;
+					let indx: usize = match self.get_index_hight_data(temp_[0].to_string().clone(), temp_t[0].to_string().clone()) {
+						Ok(A) => { b = true; A },
+						Err(e)=> { 0 },
+					};
+					if b {
+						let value_: String = match self.get_value_to_index(indx) {
+							Ok(A) => { A },
+							Err(e)=> { panic!("что-то пошло не так, ошибка математики. ошибка 450"); String::new() },
+						};
+						result_row += value_.as_str();
+					} else {
+						result_row += variable_.as_str().clone();
+						result_type = 1;
+					}
+				}
+			}
+			println!("result_row: {:?}", result_row.clone());
+			(result_row, result_type) // 0 - float, 1 - string // ROW, MATH_TYPE
+		}
+		
         pub fn i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3]) {
 			let mut where_two_obj: bool = false;       
 			
@@ -1723,13 +1851,37 @@ pub mod Language{
 				/*println!("index_first_object: {}", index_first_object);
 				panic!("");*/
 			}
+			if !where_two_obj {
+				if self.is_math(temp_buffer.clone()) {
+					temp_buffer = self.math_formating(temp_buffer.clone()).0;
+					//let ret_: String = ret_ex(temp_buffer.as_str());
+					//println!("ret_: {:?}", ret_);
+					let a: &str = temp_buffer.as_str();
+					let prompt = match CString::new(a){
+						Ok(A) => { A },
+						Err(e)=> { panic!("приводимая строка имеет неправильный вид"); CString::new("").unwrap() },
+					};
+					//unsafe {
+					let rl_prompt = prompt.as_ptr();
+					let mut result: f32 = 0.0;
+					unsafe {
+						result = eval(rl_prompt);
+						println!("result: {}", result.clone());
+					}
+					/*unsafe {
+						math_text_ = prompt.as_ptr();
 
+						println!("{:?}", math_text_);
+
+						math_text_ = ptr::null();
+					}*/
+					panic!("вошли в матан");
+				}
+			}
 			/*let mut index_second_object: usize = match self.get_index_r(temp_buffer.clone()){
 				Ok(A) => { where_two_obj = true; A },
 				Err(e) => { 
-
 					
-
 					0 
 				},
 			};*/
@@ -1912,8 +2064,8 @@ pub mod Language{
 										self.value_buffer.insert(index_first_object+1, names_[i].to_string().clone());
 										add_ += 1;
 									} else if (index_first_object+1) >= self.object_buffer.len() {
-										self.object_buffer.push((names_[i].to_string().clone(), 25));
-										self.value_buffer.push(names_[i].to_string().clone());
+										self.object_buffer.push((names_[i].trim().to_string().clone(), 25));
+										self.value_buffer.push(names_[i].trim().to_string().clone());
 										add_ += 1;
 									}									
 									if i == 0 { break; }

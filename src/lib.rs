@@ -286,7 +286,14 @@ pub mod Language{
 		*/ // 20 - fn, 34 - end_fn, 28 - void
 		words.push("call-fn[zZaZ]~(kJmN)->".to_string()); // 35 // служебное, только для вызова функции
 		// мы начинаем читать файл, с которым работаем с начала, дабы найти вызываемую функцию
-		
+		words.push("eq".to_string()); //  36
+		words.push("!eq".to_string());//  37
+		words.push(">".to_string());  //  38
+		words.push("<".to_string());  //  39
+		words.push("loop".to_string());// 40
+		words.push("end_loop".to_string());// 41
+		words.push("break".to_string()); // 42
+		// 4 - if, 33 - end, 36 - eq, 37 - !eq, 38 - >, 39 - <
 		Words{ words: words,  neural_network: new(), servers: Vec::new(), object_buffer: Vec::new(), value_buffer: Vec::new() }
 	}
 	//impl
@@ -761,12 +768,36 @@ pub mod Language{
 		}      
 		
 		pub fn search_fn(&self, temp_name: String) -> Result<String, ()> {
-			for i in 0..self.object_buffer.len().clone() {
+			let mut i: usize = self.object_buffer.len().clone() - 1;
+			loop {
 				let temp_: Vec<&str> = self.object_buffer[i].0.as_str().trim().split('|').collect();
 				if temp_[0].clone().to_string() == temp_name.clone() {
 					return Ok(self.object_buffer[i].clone().0);
 				}
+				if i == 0 { break; }
+				i -= 1;
 			} Err(())
+		}
+		pub fn search_fn_index(&self, temp_name: String) -> Result<usize, ()> {
+			for i in 0..self.object_buffer.len().clone() {
+				let temp_: Vec<&str> = self.object_buffer[i].0.as_str().trim().split('|').collect();
+				if temp_[0].clone().to_string() == temp_name.clone() {
+					return Ok(i.clone());
+				}
+			} Err(())
+		}
+
+		pub fn delete_all_fn(&mut self){
+			let mut i: usize = 0;
+			while i < self.object_buffer.len().clone() {
+				let temp_: Vec<&str> = self.object_buffer[i].0.as_str().trim().split('|').collect();
+				if temp_.len() > 1{
+					self.object_buffer.remove(i.clone());
+					self.value_buffer.remove(i.clone());
+					i = 0;
+				}
+				i += 1;				
+			}
 		}
 
 		pub fn remove_some_objects(&mut self, name_args_in_f: Vec<&str>) {
@@ -779,8 +810,127 @@ pub mod Language{
 				self.object_buffer.remove(indx.clone());
 			}
 		}
-
-		pub fn get_(&mut self, text: String, mut call_to_fn: String) -> u8 {
+		pub fn to_bool(&self, left: String, operator: String, right: String) -> bool {
+			println!("\n\nleft: {:?}\noperator: {:?}\nright: {:?}", left.clone(), operator.clone(), right.clone());
+			match operator.as_str() {
+				"!eq" | "!=" => {
+					if self.get_value_from_name(left.clone()).unwrap() != self.get_value_from_name(right.clone()).unwrap() {
+						return true;
+					} else {
+						let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
+						let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+						if left_ != right_ {
+							return true;
+						}
+					}
+				},
+				"eq" | "==" => {
+					if self.get_value_from_name(left.clone()).unwrap() == self.get_value_from_name(right.clone()).unwrap() {
+						return true;
+					} else {
+						let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
+						let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+						if left_ == right_ {
+							return true;
+						}
+					}
+				}, 
+				">" => {
+					let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
+					let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+					if left_ > right_ {
+						return true;
+					}
+				},
+				"<" => {
+					let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
+					let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+					if left_ < right_ {
+						return true;
+					}
+				},
+				_ => { panic!("неопознанный оператор в выражение if"); },
+			} false			  
+		}
+		pub fn get_all_func(&self, text_programm: String, mut func_need: String) -> String {
+			// значит буду передавать в тексте цикла ещё и функции, просто потому что могу			
+			let mut result_row: String = String::new();
+			if func_need != "".to_string() && func_need != "_".to_string() {
+				let to_space: Vec<&str> = text_programm.as_str().split('\n').collect();
+				func_need = Words::trim(func_need.clone(), " \t");
+				let funks: Vec<&str> = func_need.as_str().split(',').collect();
+				let mut i: usize = 0;
+				let mut temp_bool: bool = false;
+				//println!("spaces: {:?}", to_space.clone());
+				//panic!("");
+				for space in to_space {	
+					let end_f: Vec<&str> = space.clone().trim().split(' ').collect();	
+					//println!("end_f: {:?}", end_f.clone());			
+					for end_ in end_f {
+						let temp_: Vec<&str> = end_.clone().split('(').collect();
+						if i < funks.len().clone() && temp_[0] == funks[i] && !temp_bool {
+							temp_bool = true;
+							result_row += "func";
+							result_row.push(' ');
+							result_row += funks[i].clone();
+							result_row.push('(');
+							result_row += temp_[1].clone();
+						} else if temp_bool && end_ != "end_func" {							
+							result_row += end_.clone();
+							result_row.push(' ');
+						} else if temp_bool && end_ == "end_func"{
+							result_row += end_.clone();
+							result_row.push('\n');
+							temp_bool = false;
+							i += 1;
+						}
+					} 
+					if temp_bool {
+						result_row.push('\n');
+					}
+				}
+			} else {
+				let to_space: Vec<&str> = text_programm.as_str().split('\n').collect();
+				//func_need = Words::trim(func_need.clone(), " \t");
+				//let funks: Vec<&str> = func_need.as_str().split(',').collect();
+				let mut i: usize = 0;
+				let mut temp_bool: bool = false;
+				//println!("spaces: {:?}", to_space.clone());
+				//panic!("");
+				for space in to_space {	//println!("косяк");
+					let end_f: Vec<&str> = space.clone().trim().split(' ').collect();	
+					//println!("end_f: {:?}", end_f.clone());			
+					let mut b: bool = false;
+					for end_ in end_f {
+						if end_ == "func" { b = true; continue; }
+						let temp_: Vec<&str> = end_.clone().split('(').collect();
+						if /*i < funks.len().clone() &&*/ b && !temp_bool {
+							temp_bool = true;
+							result_row += "func";
+							result_row.push(' ');
+							result_row += end_.clone();
+							result_row.push('(');
+							
+							result_row += temp_[1].clone();
+							//println!("/косяк");
+						} else if temp_bool && end_ != "end_func" {							
+							result_row += end_.clone();
+							result_row.push(' ');
+						} else if temp_bool && end_ == "end_func"{
+							result_row += end_.clone();
+							result_row.push('\n');
+							temp_bool = false;
+							i += 1;
+						}
+					} 
+					if temp_bool {
+						result_row.push('\n');
+					}
+				}
+			}
+			result_row
+		}
+		pub fn get_(&mut self, text: String, mut call_to_fn: String, mut loop_active: bool, looper: usize) -> u8 {
 						
 			//let mut variables_name: Vec<String> = Vec::new();
 			
@@ -790,11 +940,19 @@ pub mod Language{
 			let mut temp_values: String = String::new();			//	ВРЕМЕННЫЕ ПЕРЕМЕННЫЕ
 			let mut temp_name:	 String = String::new();			//	...
 			let mut temp_buffer: String = String::new();			//	...
+			let mut temp_doubler: String = String::new();			// для циклов
+			let mut temp_to_func: String = String::new();			// храним функции
 			//let mut temp_usize_value: usize = 0;
 			let mut func_inactive: bool = true;
 			//let mut this_row: usize = 0;			
 			let mut call_func: bool = false;
 			let mut fn_active: bool = false;
+			let mut bools_var: bool = false;			
+			let mut loop_active_:bool=false;
+			//
+			let mut looper_value: usize = 0;
+			let mut end_looper: bool = false;
+			//let mut this_loop_active: bool=false;
 			let mut vars_to_func: String = String::new();
 			let mut name_args_in_f: Vec<&str> = Vec::new();
 			if call_to_fn != "".to_string() {
@@ -831,9 +989,14 @@ pub mod Language{
 
 			let mut last_op: [usize; 3] = [0; 3];					//  ...
 			//-----------------------------------------------------------------------------------------------------------------
-			for ch in text.chars() {			
+			for ch in text.chars() {
 				//Split(input: String, ch: char) ДЛЯ КОСЯКОВ
-				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\ntemp_name - {:?}\nself.value_buffer.len() - {:?}\nself.value_buffer: {:?}\nself.object_buffer - {:?}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), temp_name.clone(), self.value_buffer.clone().len(), self.value_buffer.clone(), self.object_buffer.clone());
+				println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\ntemp_name - {:?}\nself.value_buffer.len() - {:?}\nself.value_buffer: {:?}\nself.object_buffer - {:?}\nloop_active: {}\nbools_var: {}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), temp_name.clone(), self.value_buffer.clone().len(), self.value_buffer.clone(), self.object_buffer.clone(), loop_active.clone(), bools_var.clone());
+				if loop_active_ {
+					//temp_doubler += temp_buffer.as_str().clone();
+					temp_doubler.push(ch.clone());
+					//println!("temp_doubler: \n{}", temp_doubler.clone());
+				}
 				if ch == ' ' || ch == '\t' {
 					/*if temp_buffer != call_to_fn && call_func && !fn_active {
 						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
@@ -921,7 +1084,28 @@ pub mod Language{
 								temp_name = String::new();
 							},
 							// end to fn
-
+							4 => {
+								last_op[0] = 4;
+								temp_buffer = String::new();
+								temp_values = String::new();
+								temp_name = String::new();
+							},
+							40 => { loop_active_ = true; },
+							42 => { 
+								if looper == looper_value {
+									return 2;
+								}
+							},
+							/*
+								words.push("loop".to_string());// 40
+								words.push("end_loop".to_string());// 41
+								words.push("break".to_string()); // 42
+							*/
+							/*33 => {
+								temp_buffer = String::new();
+								temp_values = String::new();
+								temp_name = String::new();
+							},*/
 							//words.push("struct".to_string()); //29 // создание структуры
 							//words.push("end".to_string());//33//end operation
 							_ => {
@@ -952,6 +1136,15 @@ pub mod Language{
                     } else*/
 					if last_op[0] == 3 && last_op[1] == 13 {
 						temp_buffer.push(ch.clone());					
+					} else if last_op[0] == 4 && last_op[1] == 0 && last_op[2] == 0 {
+						temp_name = temp_buffer.clone();
+						last_op[1] = 17;
+						temp_buffer = String::new();
+						// 4 - if, 33 - end, 36 - eq, 37 - !eq, 38 - >, 39 - <
+					} else if last_op[0] == 4 && last_op[1] == 17 && last_op[2] == 0 {
+						temp_values = temp_buffer.clone();
+						last_op[2] = 17;
+						temp_buffer = String::new();
 					} else if last_op[0] == 24 && last_op[1] == 0 {
 						last_op[1] = 17;
 					} else if last_op[0] == 24 && last_op[1] == 15 && last_op[2] == 0 {
@@ -1026,7 +1219,210 @@ pub mod Language{
 				} else if ch == '\n' {
 					//this_row += 1;
 					// код осуществляющий работу
-					//					 	
+					//	
+					println!("\n\nlooper: {}\n", looper.clone());
+					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
+						//panic!("");
+						//let temp_buffer_vec: Vec<&str> = temp_buffer.as_str().split(' ').collect();
+						//temp_buffer = temp_buffer_vec[0].clone().to_string();
+						let action: usize = Words::get_action_lite(self.words.clone(), Words::trim(temp_buffer.clone(), " \t\n"));
+						println!("action: {}", action.clone());
+						if action == 33 {
+							bools_var = false;
+							//panic!("");
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+							//continue;
+							/*
+								40 => { loop_active_ = true; },
+								
+									words.push("loop".to_string());// 40
+									words.push("end_loop".to_string());// 41
+									words.push("break".to_string()); // 42
+								
+							*/
+						} else if action == 40 && func_inactive { 
+							//temp_doubler += temp_buffer.clone().as_str();					
+							loop_active_ = true;
+							looper_value += 1;
+							println!("looper_value: {}", looper_value);
+							//end_looper = looper_value;
+							//last_op[0] = 40;
+							temp_buffer = Words::trim(temp_buffer.clone(), " \t\n");
+							let funks: Vec<&str> = temp_buffer.as_str().split('#').collect();
+							if funks.len() > 1 {
+								temp_to_func = funks[1].clone().to_string();
+								temp_to_func = self.get_all_func(text.clone(), temp_to_func.clone());
+							} else {
+								temp_to_func = self.get_all_func(text.clone(), "".to_string());
+							}							
+							temp_doubler += temp_to_func.clone().as_str();
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+						} else if action == 41 && func_inactive {
+							loop_active = false;
+							let funks: Vec<&str> = temp_buffer.as_str().split('#').collect();
+							if funks.len() > 1 {
+								println!("temp_doubler: \n{}", temp_doubler);
+								temp_doubler = text.clone();
+								//panic!("");
+							} else {
+								//temp_doubler += temp_buffer.as_str().clone();
+								//temp_doubler.push('\n');
+								last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+								temp_buffer = String::new();
+								temp_weight_vec = Vec::new();
+								temp_values = String::new();
+								temp_name = String::new();
+								continue;
+							}
+							/*if looper_value == looper {
+								panic!("end loop");
+								loop_active = true;								
+								//end_looper -= 1;
+								println!("temp_doubler: \n{}", temp_doubler);	
+								//panic!("");
+							} 
+							if end_looper {
+								end_looper = false;
+							}*/
+
+							let mut strn_: String = String::new();
+							let mut spaces: Vec<&str> = temp_doubler.as_str().split('\n').collect();
+							let mut i: usize = spaces.len().clone() - 1;
+							let mut b: bool = true;
+							loop {
+								if !b {
+									
+								} else if b && (spaces[i].trim() == "end_loop" || spaces[i].trim() == "end_loop#") {
+									b = false;	
+									spaces.remove(i.clone());
+									break;
+								} else {
+									
+								}								
+								if i == 0 {
+									break;
+								}
+								i -= 1;
+							}
+							for sp in spaces.clone() {
+								if sp != "loop" {
+								strn_ += sp.clone();
+								strn_.push('\n');
+								}
+							}
+							println!("strn_: \n{}", strn_.clone());
+							println!("spaces: \n{:?}", spaces.clone());
+
+							//panic!("");
+							while self.get_(strn_.clone(), "".to_string(), true, looper + 1) != 2 {
+								//self.delete_all_fn();
+								println!("strn_: \n{}", strn_.clone());
+								println!("while looper_value: {} \t looper: {}",looper_value , looper);	
+								//panic!("");
+								//panic!("");
+							} 
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+							continue;
+							println!("looper: {}", looper);
+							panic!("");
+							if looper != 0 {
+								return 2;
+							}
+							//loop_active = true;
+							//loop_active_ = true;
+							//panic!("end loop");
+							println!("41 looper_value: {} \t looper: {}",looper_value , looper);
+							//panic!("end loop");
+							//temp_buffer = Words::trim(temp_buffer.clone(), " \t\n");
+							//let luper_: usize = temp_buffer.as_str().split('#').collect();
+							//end_looper += 1;
+							/*if looper_value == looper {
+								return 1;
+							}*/
+						} else if action == 42 && !bools_var { 
+							println!("\n\n\nact 42");
+							//panic!("");
+							println!("\nlooper_value: {} \t looper: {}\t loop_active: {}",looper_value , looper, loop_active);
+							
+							/*if looper == looper_value + 1 {*/
+								//panic!("");
+								/*println!("\n\n\nact 42");
+								println!("looper_value: {} \t looper: {}",looper_value , looper);*/
+								//panic!("");
+								return 2;
+							/*}*/
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+							continue;
+						} else {
+							//continue;
+						}
+					}
+					/*if end_looper {
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+						continue;
+					}*/
+					if bools_var {
+						let action: usize = Words::get_action_lite(self.words.clone(), Words::trim(temp_buffer.clone(), " \t\n"));
+						// 4 - if, 33 - end, 36 - eq, 37 - !eq, 38 - >, 39 - <
+						if action == 33 {
+							bools_var = false;
+						}
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+						continue;
+					} else {
+						let action: usize = Words::get_action_lite(self.words.clone(), Words::trim(temp_buffer.clone(), " \t\n"));
+						// 4 - if, 33 - end, 36 - eq, 37 - !eq, 38 - >, 39 - <
+						if action == 33 {
+							continue;
+						}
+						if last_op[0] == 4 && last_op[1] == 17 && last_op[2] == 17 {
+							//if looper == 0 && looper_value == 0 { panic!(""); }
+							let mut vec_: Vec<&str> = temp_buffer.as_str().split(' ').collect();
+							let mut i: usize = 0;
+							while i < vec_.len() {
+								if vec_[i] == "" {
+									vec_.remove(i);
+									i = 0;
+								}
+								i += 1;
+							}							
+							if !self.to_bool(temp_values.clone(), vec_[0].to_string().clone(), vec_[1].to_string().clone()) {
+								bools_var = true;
+								println!("{}", bools_var);
+								//panic!("");
+							}
+							println!("{}", bools_var);
+							//panic!("");
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+						}														
+					}					
 					if call_func {
 						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
 						if action == 34 && fn_active {
@@ -1085,7 +1481,7 @@ pub mod Language{
 						temp_values = String::new();
 						temp_name = String::new();
 					}
-					//
+					//					
 					if last_op[0] == 2 && last_op[1] == 15 {
                         //println!("name {}", temp_name.clone());
                         self.object_buffer.push((temp_name.clone(), 2));
@@ -1100,7 +1496,46 @@ pub mod Language{
 						temp_values = String::new();
 						temp_name = String::new();		
                         last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
-                    } else if last_op[0] == 2 && last_op[1] == 0 {                                                
+                    } else if last_op[0] == 40 && looper == looper_value {	
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+						//return 2;
+						/*
+								40 => { loop_active_ = true; },
+								
+								words.push("loop".to_string());// 40
+								words.push("end_loop".to_string());// 41
+								words.push("break".to_string()); // 42
+								
+						*/
+
+					} else if last_op[0] == 4 && last_op[1] == 17 && last_op[2] == 17 {
+						let mut vec_: Vec<&str> = temp_buffer.as_str().split(' ').collect();
+						let mut i: usize = 0;
+						while i < vec_.len() {
+							if vec_[i] == "" {
+								vec_.remove(i);
+								i = 0;
+							}
+							i += 1;
+						}
+
+						if !self.to_bool(temp_values.clone(), vec_[0].to_string().clone(), vec_[1].to_string().clone()) {
+							bools_var = true;
+							println!("{}", bools_var);
+							//panic!("");
+						}
+						println!("{}", bools_var);
+						//panic!("");
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();
+					} else if last_op[0] == 2 && last_op[1] == 0 {                                                
                         // servers - Vec<TcpStream>
                         // ВЕРНИСЬ
                         //println!("name {}", temp_buffer.clone());
@@ -1137,15 +1572,26 @@ pub mod Language{
 						temp_name = String::new();		
 						continue;
                     } else if last_op[0] == 3 && last_op[1] == 13 {
-						self.value_buffer.push(String::new());// было: temp_buffer.clone()
-						self.object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
-						//  i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3])
-						//println!("self.object_buffer: ", self.object_buffer.clone());
-						last_op[0] = 17; last_op[1] = 15; last_op[2] = 0;
-                        
-                        
-                        
-                        self.i_have_u(temp_buffer.clone(), temp_values.clone(), last_op.clone());
+						/*if !loop_active { 
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();		
+							
+							last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
+							continue; 
+						}*/
+						if !loop_active && looper == 0 {
+							self.value_buffer.push(String::new());// было: temp_buffer.clone()
+							self.object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
+							//  i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3])
+							//println!("self.object_buffer: ", self.object_buffer.clone());
+							last_op[0] = 17; last_op[1] = 15; last_op[2] = 0;
+							
+							
+							
+							self.i_have_u(temp_buffer.clone(), temp_values.clone(), last_op.clone());
+						}
                         //println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug()); // ДЛЯ КОСЯКОВ
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -1155,9 +1601,19 @@ pub mod Language{
 						last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 
 					} else if last_op[0] == 3 && last_op[1] != 13 {
-						self.value_buffer.push(String::new());
-						self.object_buffer.push((temp_buffer.clone(), 1));
-
+						/*if !loop_active { 
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();		
+							
+							last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
+							continue; 
+						}*/
+						if !loop_active && looper == 0 {
+							self.value_buffer.push(String::new());
+							self.object_buffer.push((temp_buffer.clone(), 1));
+						}
 						temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
 						temp_values = String::new();
@@ -1211,15 +1667,15 @@ pub mod Language{
                                             if self.object_buffer[k].1 == 0 {
                                                 u_for_neyron += 1;
                                             }
-                                        }
+                                        }*/
                                         /*if u_for_neyron != 0 {
                                             u_for_neyron -= 1;
                                         }*/
-                                        println!("{}", self.neural_network.get_neyron_name(u_for_neyron));
-                                    }
-                                    break;
-                                }
-                            }*/
+                                  //      println!("{}", self.neural_network.get_neyron_name(u_for_neyron));
+                                  //  }
+                                  //  break;
+                                //}
+                            //}
                         }
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                         temp_buffer = String::new();
@@ -1370,22 +1826,24 @@ pub mod Language{
 					} else if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 33 {
 						// name_func | arg | arg1 | ... | argN
 						// порядковый номер энтера '\n'
+						if !loop_active && looper == 0 {
+							//println!("looper: {}", looper.clone())
+							let args_: Vec<&str> = temp_values.as_str().split(',').collect();
 
-						let args_: Vec<&str> = temp_values.as_str().split(',').collect();
-
-						/*if temp_name == call_to_fn {
-							fn_active = true;
-							continue;
-						}*/
+							/*if temp_name == call_to_fn {
+								fn_active = true;
+								continue;
+							}*/
 
 
-						for arg_ in args_ {
-							temp_name.push('|');
-							temp_name += arg_;
+							for arg_ in args_ {
+								temp_name.push('|');
+								temp_name += arg_;
+							}
+
+							self.object_buffer.push((temp_name.clone(), 10));
+							self.value_buffer.push(String::new());
 						}
-
-						self.object_buffer.push((temp_name.clone(), 10));
-						self.value_buffer.push(String::new());
 						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
 						temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -1395,7 +1853,7 @@ pub mod Language{
 						func_inactive = false;
 						continue;
 						//panic!("работает?!");
-					} else if last_op[0] == 35 && last_op[1] == 35 && last_op[2] == 35 {						
+					} else if last_op[0] == 35 && last_op[1] == 35 && last_op[2] == 35 {												
 						let args_: Vec<&str> = temp_values.trim().split(',').collect();
 						let mut run_row: String = String::new();
 						//function|other|other;arg1|arg2
@@ -1405,6 +1863,7 @@ pub mod Language{
 							run_row += args_[i].clone();
 						}
 						run_row.push(';');
+						println!("text: \n{}", text.clone());
 						let args_in_fn: String = match self.search_fn(temp_name.clone()){
 							Ok(A) => { A },
 							Err(e)=> { panic!("нет такой функции"); String::new() },
@@ -1419,10 +1878,18 @@ pub mod Language{
 						let len_: usize = run_row.clone().chars().count() - 1;
 						run_row.remove(len_);
 						println!("{:?}", run_row);
+						//panic!("");
 						//pub fn get_(&mut self, text: String, mut call_to_fn: String) -> u8
-						if self.get_(text.clone(), run_row.clone()) != 1 {
+						println!("вызываем функцию, передаём:");
+						println!("temp_buffer: {}\ntext: \n{}", temp_buffer.clone(), text.clone());
+						let temp__ = self.get_(text.clone(), run_row.clone(), false, looper);
+						if /*temp_buffer.as_str().trim() == "end_loop" 
+								&&*/ temp__ != 1 && temp__ != 0 {
+							println!("temp__: {}", temp__.clone());
+							println!("temp_buffer: {}\ntext: \n{}", temp_buffer.clone(), text.clone());
 							panic!("внутренняя ошибка вызова функции");
 						}
+						
 						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
 						temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -1866,7 +2333,10 @@ pub mod Language{
 					let mut result: f32 = 0.0;
 					unsafe {
 						result = eval(rl_prompt);
-						println!("result: {}", result.clone());
+						//println!("result: {}", result.clone());
+					}
+					if result != 0.0 {
+						temp_buffer = result.clone().to_string();
 					}
 					/*unsafe {
 						math_text_ = prompt.as_ptr();
@@ -1875,7 +2345,7 @@ pub mod Language{
 
 						math_text_ = ptr::null();
 					}*/
-					panic!("вошли в матан");
+					//panic!("вошли в матан");
 				}
 			}
 			/*let mut index_second_object: usize = match self.get_index_r(temp_buffer.clone()){
@@ -2199,6 +2669,8 @@ pub mod Language{
 			}; pie
 		}
 		pub fn get_action_lite(words: Vec<String>, word: String)->usize{
+			let word: Vec<&str> = word.as_str().split('#').collect();
+			let word: String = word[0].to_string();
 			let mut index: usize = 0;
 			//let word_chs: Vec<char> = Words::to_vec(word);
 			for word_ in words {

@@ -5,76 +5,109 @@ use ThRustGorge::Language;
 fn main() {
     //println!("Hello, world!");
 	let mut o = Language::on_create();
-	//pub fn unsafe_funtion_memory_add(&mut self, name: String, value: String, type_: usize){
-	//o.unsafe_funtion_memory_add("array1.2".to_string(), "".to_string(), 5);
-	//o.unsafe_funtion_memory_add("one".to_string(), "".to_string(), 1);
-	//o.unsafe_funtion_memory_add("two".to_string(), "".to_string(), 2);
-	//o.unsafe_funtion_memory_add("1wssw".to_string(), "".to_string(), 2);
-	//pub fn get_index(&self, mut name: String) -> Result<usize , ()> {
-	//println!("{}", o.get_index("array1[\"one\"]".to_string()).unwrap().to_string());
-	/*o.get_("perc ney02        
-        \n object obj4 = ney02
-        \n print obj4
-	\n obj4 = { 1.9, 1.20, 20.225 }\0
-	\n print obj4
-	\n ney02 = obj4
-	\n obj4 = ney02
-        \n print obj4        
-        \n".to_string());*/		
-	/*o.get_("perc ney02 
-        \n object hello = Hello, World!\0
-        \n object obj1 
-        \n print hello
-        \n object obj2 = Other Text!\0
-        \n obj1 = obj2
-        \n perc ney1 { 1.6, 1.8, 1.20 }         
-        \n obj1 = ney1
-        \n print obj2
-        \n print obj1
-	\n ney02 = ney1
-        \n object obj4 = ney02
-        \n print obj4
-	\n obj4 = { 1.9, 1.20, 20.225 }\0
-	\n ney02 = obj4
-	\n obj4 = ney02
-        \n print obj4
-        \n server serv = 192.168.0.2
-        \n server serv_= serv
-        \n print serv
-        \n print serv_
-        \n".to_string());*/
-	o.get_("
-struct str1
-	object hello
-	object hello1
-	object hello2
-	object hello3
-	object hello4
-end
-object other =other object\n
-print other
+	println!("{}", o.get_("
+func hello(arg1)
+    print one
+end_func
 
-func fn(arg1)\n
-        print arg1\n
-end_func\n
+object other=0
+object to_other=3
+object one=To One Cirkle
+object two=To Two Cirkle
 
-func function(arg1, arg2)\n
-        print arg1\n
-        fn(arg1)\n        
-end_func\n
+loop
+    other = other + 3 : math    
+    if other > to_other
+        hello(other)
+        break
+    end
+end_loop#
 
-function(other, other)\n
-array ar =one,two,tree\n
-str1[\"hello\"] = ar[0]\n
-ar[0] =other\n
-str1[\"hello\"] = ar[0]\n
-ar[0] = for_other\0\n
-other = ar[0]\n
-other =ar_0,ar_1\n
-ar = other\n
-object ot1=20.55\n
-other = 1.10 + ot1 + 3 * 6 : math\n
-".to_string(), "".to_string());
+".to_string(), "".to_string(), false, 0));/*
+object toto_other=21
+object gb =Good Bue looper_
+func hello(arg1)
+
+    if other < to_other
+        hello_(other)        
+    end
+    print arg1
+end_func
+
+func looper_(arg1)
+    loop
+        if other < toto_other
+            break
+        end
+        other = other + 2 : math
+    end_loop
+end_func
+
+func hello_(arg1)
+    other = other + 1 : math
+    if other < to_other
+        hello_(other)        
+    end
+end_func
+
+hello(other)
+
+println!("\n\nall: \n\n{}", o.get_all_func("
+object other=0
+object to_other=10
+object toto_other=21
+object gb =Good Bue looper_
+func hello(arg1)
+    print arg1
+end_func
+func looper_(arg1)
+    loop
+        if other > to_other
+            break
+        end
+        other = other + 1 : math
+        end_loop
+    hello(other)
+    print gb
+end_func
+
+looper_(other)
+".to_string(), "hello,looper_".to_string()));*/
+	/*o.get_("
+object other=1
+object to_other=10
+object toto_other=5
+object gb =Good Bue looper_
+
+func plus_one(arg2)
+    loop
+        if other > toto_other 
+            break
+        end
+        other = other + 2 : math
+    end_loop
+end_func
+
+func hello(arg1)
+    print arg1
+end_func
+func looper_(arg1)
+    loop#plus_one
+        if other > to_other
+            break
+        end
+        plus_one(other)        
+        other = other + 1 : math
+    end_loop
+
+    hello(other)
+    print gb
+
+end_func
+
+looper_(other)
+
+".to_string(), "".to_string(), false, 0);*/
 	//o.unsafe_print_bufs_and_vals();	
     //dbg!(o.get_value("obj2".to_string()));
 

@@ -903,16 +903,12 @@ pub mod Language{
 					let mut b: bool = false;
 					for end_ in end_f {
 						if end_ == "func" { b = true; continue; }
-						let temp_: Vec<&str> = end_.clone().split('(').collect();
+						let temp_: Vec<&str> = end_.clone().split('(').collect();						
 						if /*i < funks.len().clone() &&*/ b && !temp_bool {
 							temp_bool = true;
 							result_row += "func";
 							result_row.push(' ');
 							result_row += end_.clone();
-							result_row.push('(');
-							
-							result_row += temp_[1].clone();
-							//println!("/косяк");
 						} else if temp_bool && end_ != "end_func" {							
 							result_row += end_.clone();
 							result_row.push(' ');
@@ -1253,6 +1249,7 @@ pub mod Language{
 									strn_.push('\n');
 									//}
 								}
+								strn_ = self.get_all_func(text.clone(), "".to_string()) + strn_.as_str();
 								//println!("strn_:\n{}", strn_);
 								//println!("-----------------");
 								//println!("looper: {}\t result: {}",looper, 

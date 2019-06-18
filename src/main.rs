@@ -2,28 +2,60 @@
 extern crate ThRustGorge;
 use ThRustGorge::Language;
 
+use std::net::*;
+use std::thread;
+use std::io::Write;
+use std::io::Read;
+
 fn main() {
     //println!("Hello, world!");
+    let mut program_text: Vec<String> = Vec::new();
 	let mut o = Language::on_create();
-	println!("{}", o.get_("
-func hello(arg1)
-    print one
-end_func
+    /*let listener = TcpListener::bind("127.0.0.1:9273").unwrap();
+    println!("listening started, ready to accept");
+    //fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize>
+    for stream in listener.incoming() {
+        thread::spawn(move| | {
+            let mut stream = match stream {
+                Ok(A) => { A },
+                Err(e) => { 
+                    println!("ошибка получения пользователя."); 
+                    println!("{:?}", e); 
+                    panic!("ошибка получения потока пользователя"); 
+                    stream.unwrap()
+                },
+            };
+            let mut bytes: Vec<u8> = Vec::new();
+            match stream.read_to_end(&mut bytes) {
+                Ok(A) => {  },
+                Err(e)=> { println!("не удалось прочитать сообщение"); },
+            };
+            let row_: String = match String::from_utf8(bytes) {
+                Ok(A) => { A },
+                Err(e)=> { println!("ошибка преобразования строки"); "".to_string() },
+            };
+            if row_ != "".to_string() {
 
-object other=0
-object to_other=3
-object one=To One Cirkle
-object two=To Two Cirkle
+            }
+        });
+    }*/
+    //self.get_all_func(text.clone(), temp_to_func.clone());
+	o.get_("
 
-loop
-    other = other + 3 : math    
-    if other > to_other
-        hello(other)
-        break
-    end
-end_loop#
 
-".to_string(), "".to_string(), false, 0));/*
+object lib=hello_ivi.out
+object func_=say_hello
+object other =12
+if other > 10.5
+    print func_
+end
+import(lib, lib1, lib2)
+    extern_func(lib, func_, other, return_variable)
+    extern_func(lib, func_, other)
+    extern_func(lib, func_)
+close_import(lib, lib1, lib2)
+
+".to_string(), "".to_string(), false, 0); /*
 object toto_other=21
 object gb =Good Bue looper_
 func hello(arg1)

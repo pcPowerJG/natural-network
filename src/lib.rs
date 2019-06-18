@@ -119,6 +119,18 @@ pub mod Language{
 	extern {
 		fn eval(text: *const libc::c_char)->f32;
 	}
+
+	#[link(name="to_extern")]
+	extern {
+		// int linked(char * lib_path, char * lib_name){
+		fn linked(lib_path: *const libc::c_char, func_name: *const libc::c_char) -> i32;
+		//void *open(char * lib_path) {
+		fn open(lib_path: *const libc::c_char) -> *const libc::c_void;
+		//
+		fn close(lib: *const libc::c_void) -> i32;
+		//int int_rf_func(void* handle, char * func_name, int arg){
+		fn int_rf_func(handle: *const libc::c_void, func_name: *const libc::c_char, arg: libc::c_int) -> i32;
+	}
 	
 	// endpointautomate
 	use std::net::*;
@@ -129,6 +141,7 @@ pub mod Language{
 			//buffer_action: Vec<[usize; 3]>,                 // буффер для действий
 			object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура, 10 - функция
 	        value_buffer: Vec<String>,                        // значения 
+			import_handle: Vec<*const libc::c_void>,
 	}
 	pub fn on_create() -> Words {
 		let mut words: Vec<String> = Vec::new(); 
@@ -294,13 +307,20 @@ pub mod Language{
 		words.push("end_loop".to_string());// 41
 		words.push("break".to_string()); // 42
 		// 4 - if, 33 - end, 36 - eq, 37 - !eq, 38 - >, 39 - <
-		Words{ words: words,  neural_network: new(), servers: Vec::new(), object_buffer: Vec::new(), value_buffer: Vec::new() }
+		Words{ 
+			words: words,  
+			neural_network: new(), 
+			servers: Vec::new(), 
+			object_buffer: Vec::new(), 
+			value_buffer: Vec::new(),
+			import_handle: Vec::new(),
+		}
 	}
 	//impl
     /*pub fn clone(to: &mut Words, from: &Words){
         
     }*/
-	impl Words{ 
+	impl Words{ 		
 		pub fn eq_char_in_string(ch: char, st: &String)->bool{
 			for ch_in_st in st.chars(){
 				if ch == ch_in_st{
@@ -667,14 +687,14 @@ pub mod Language{
 				let name__: String = what_is_that[0].to_string();
 				let indx_: usize = match self.get_index_hight_data(name__.clone(), value__.clone()){
 					Ok(A) => { A },
-					Err(e)=> { panic!("попытка присваивания несуществующего значения"); 0 },
+					Err(e)=> { return Err(()); 0 },
 				};
 				return self.get_value_to_index(indx_);
 			} else {
 				let name__: String = what_is_that[0].to_string();
 				let indx_: usize = match self.get_index(name__.clone()){
 					Ok(A) => { A },
-					Err(e)=> { panic!("попытка присваивания несуществующего значения"); 0 },
+					Err(e)=> { return Err(()); 0 },
 				};
 				return self.get_value_to_index(indx_);
 			}
@@ -836,9 +856,42 @@ pub mod Language{
 					}
 				}, 
 				">" => {
-					let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
-					let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+					let left_: f32 = match self.get_value_from_name(left.clone()) {
+						Ok(A) => { 
+							let f: f32 = match A.parse(){
+								Ok(B) => { B },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							}; 
+							f
+						},
+						Err(e)=>{
+							let left = Words::trim(left.clone(), " \t");
+							let f: f32 = match left.parse(){
+								Ok(C) => { C },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							};
+							f
+						},
+					};
+					let right_: f32 = match self.get_value_from_name(right.clone()){
+						Ok(A) => { 
+							let f: f32 = match A.parse(){
+								Ok(B) => { B },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							}; 
+							f
+						},
+						Err(e)=>{
+							let right = Words::trim(right.clone(), " \t");
+							let f: f32 = match right.parse(){
+								Ok(C) => { C },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							};
+							f
+						},
+					};
 					if left_ > right_ {
+						//println!("return true");
 						return true;
 					}
 				},
@@ -1832,6 +1885,17 @@ pub mod Language{
 						}
 						run_row.push(';');
 						//println!("text: \n{}", text.clone());
+						/*
+							temp_buffer - "lib,lib1,lib2" // аргументы
+							temp_values - "lib,lib1,lib2" // аргументы
+							temp_name - "import" // имя функции
+						*/
+						let mut spec_func: bool = false;
+						let mut spec_func_name: String = String::new();
+						let spec_func_names: Vec<&str> = vec![
+							"import", "close_import", "extern_func", "exit"
+						];
+						panic!("");
 						let args_in_fn: String = match self.search_fn(temp_name.clone()){
 							Ok(A) => { A },
 							Err(e)=> { panic!("нет такой функции"); String::new() },

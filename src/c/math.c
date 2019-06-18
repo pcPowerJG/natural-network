@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <math.h>
- 
 #define BUF_SIZE 1024
  
 // <цифра> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
@@ -10,20 +8,12 @@
 // <выражение> ::= <слагаемое> [ ( '+' | '-' ) <слагаемое> ]
 // <слагаемое> ::= <множитель> [ ( '*' | '/' ) <множитель> ]
 // <множитель> ::= ( <число> | '(' <выражение> ')' ) [ '^' <множитель> ]
- 
-/*typedef void (*rust_callback)(int32_t);
-rust_callback cb;
 
-int32_t register_callback(rust_callback callback) {
-    cb = callback;
-    return 1;
+
+int say_hello_math(int val) {
+    printf("Hello From Math\n");
+    return val * val;
 }
-
-void trigger_callback() {
-  cb(7); // Will call callback(7) in Rust.
-}
-*/
-
 
 float eval(char *str);
 float number(char *, unsigned *);
@@ -170,3 +160,4 @@ float factor(char *str, unsigned *idx) {
  
     return sign * result;
 }
+

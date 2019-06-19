@@ -665,12 +665,26 @@ pub mod Language{
 					//if for_array {
 						let this_value_var: Vec<&str> = self.object_buffer[i].0.as_str().split('_').collect();
 						//let len__: usize = this_value_var.len() - 1;
-						if temp_name.as_str() == this_value_var[0].clone() 
-							&& self.object_buffer[i].1 != 25 {
-							//if temp_values.as_str() == this_value_var[len__] {				
+						if temp_name == self.object_buffer[i].0 && self.object_buffer[i].1 != 25 && this_value_var.len() == 1 {
+							return Ok(i.clone());
+						} else if self.object_buffer[i].1 != 25  {
+							let mut vars_: String = String::new();
+							for i in 0..this_value_var.len() - 1 {
+								vars_ += this_value_var[i].clone();
+								vars_.push('_');
+							}
+							let len__: usize = vars_.chars().count();
+							if len__ != 0 {							
+								vars_.remove(len__ - 1);
+							}
+							if self.object_buffer[i].0 == vars_.clone() {
 								return Ok(i.clone());
+							}
+							//if temp_values.as_str() == this_value_var[len__] {				
+								
 							//}
-						} 
+						}
+
 						let this_value_var: Vec<&str> = self.object_buffer[i].0.as_str().split('.').collect();
 						//let len__: usize = this_value_var.len() - 1;
 						if temp_name.as_str() == this_value_var[0].clone() 
@@ -843,22 +857,98 @@ pub mod Language{
 			//println!("\n\nleft: {:?}\noperator: {:?}\nright: {:?}", left.clone(), operator.clone(), right.clone());
 			match operator.as_str() {
 				"!eq" | "!=" => {
-					if self.get_value_from_name(left.clone()).unwrap() != self.get_value_from_name(right.clone()).unwrap() {
+					if (match self.get_value_from_name(left.clone()){
+						Ok(A) => { A },
+						Err(e)=> { left.clone() },
+					}) != (match self.get_value_from_name(right.clone()){
+						Ok(A) => { A },
+						Err(e)=> { right.clone() },
+					}) {
 						return true;
 					} else {
-						let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
-						let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+						let left_: f32 = match self.get_value_from_name(left.clone()) {
+							Ok(A) => { 
+								let f: f32 = match A.parse(){
+									Ok(B) => { B },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								}; 
+								f
+							},
+							Err(e)=>{
+								let left = Words::trim(left.clone(), " \t");
+								let f: f32 = match left.parse(){
+									Ok(C) => { C },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								};
+								f
+							},
+						};
+						let right_: f32 = match self.get_value_from_name(right.clone()){
+							Ok(A) => { 
+								let f: f32 = match A.parse(){
+									Ok(B) => { B },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								}; 
+								f
+							},
+							Err(e)=>{
+								let right = Words::trim(right.clone(), " \t");
+								let f: f32 = match right.parse(){
+									Ok(C) => { C },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								};
+								f
+							},
+						};
 						if left_ != right_ {
 							return true;
 						}
 					}
 				},
 				"eq" | "==" => {
-					if self.get_value_from_name(left.clone()).unwrap() == self.get_value_from_name(right.clone()).unwrap() {
+					if (match self.get_value_from_name(left.clone()){
+						Ok(A) => { A },
+						Err(e)=> { left.clone() },
+					}) == (match self.get_value_from_name(right.clone()){
+						Ok(A) => { A },
+						Err(e)=> { right.clone() },
+					}) {
 						return true;
 					} else {
-						let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
-						let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+						let left_: f32 = match self.get_value_from_name(left.clone()) {
+							Ok(A) => { 
+								let f: f32 = match A.parse(){
+									Ok(B) => { B },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								}; 
+								f
+							},
+							Err(e)=>{
+								let left = Words::trim(left.clone(), " \t");
+								let f: f32 = match left.parse(){
+									Ok(C) => { C },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								};
+								f
+							},
+						};
+						let right_: f32 = match self.get_value_from_name(right.clone()){
+							Ok(A) => { 
+								let f: f32 = match A.parse(){
+									Ok(B) => { B },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								}; 
+								f
+							},
+							Err(e)=>{
+								let right = Words::trim(right.clone(), " \t");
+								let f: f32 = match right.parse(){
+									Ok(C) => { C },
+									Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+								};
+								f
+							},
+						};
 						if left_ == right_ {
 							return true;
 						}
@@ -905,8 +995,40 @@ pub mod Language{
 					}
 				},
 				"<" => {
-					let left_: f32 = self.get_value_from_name(left.clone()).unwrap().parse().unwrap();
-					let right_: f32 = self.get_value_from_name(right.clone()).unwrap().parse().unwrap();
+					let left_: f32 = match self.get_value_from_name(left.clone()) {
+						Ok(A) => { 
+							let f: f32 = match A.parse(){
+								Ok(B) => { B },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							}; 
+							f
+						},
+						Err(e)=>{
+							let left = Words::trim(left.clone(), " \t");
+							let f: f32 = match left.parse(){
+								Ok(C) => { C },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							};
+							f
+						},
+					};
+					let right_: f32 = match self.get_value_from_name(right.clone()){
+						Ok(A) => { 
+							let f: f32 = match A.parse(){
+								Ok(B) => { B },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							}; 
+							f
+						},
+						Err(e)=>{
+							let right = Words::trim(right.clone(), " \t");
+							let f: f32 = match right.parse(){
+								Ok(C) => { C },
+								Err(e)=> { panic!("нельзя сравнивать текстовые значения"); 0.0 },
+							};
+							f
+						},
+					};
 					if left_ < right_ {
 						return true;
 					}
@@ -1271,6 +1393,122 @@ pub mod Language{
 						}
 					}
 				}, 
+				"push" => {
+					let save_ = args.clone();
+					let args = Words::trim(args.clone(), " \t");					
+					let mut args_: Vec<&str> = args.as_str().split(',').collect();
+					//let name_: usize = self.get inputs_arg[0].to_string();
+					let mut name_: usize = 0;
+					{
+						//let mut __temp: String = String::new();						
+						let _temp_: Vec<&str> = args_[0].clone().split('[').collect();
+						if _temp_.len() > 1 {
+							let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+							match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+								Ok(A) => { 
+									name_ = A;
+								},
+								Err(e)=> {
+									println!("переменная: '{}'", args_[0]);
+									panic!("попытка записать значение в несуществующий объект.");
+								},
+							}
+							//args__ = __temp.as_str();
+						} else {
+							match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+								Ok(A) => { 
+									name_ = A;
+								},
+								Err(e)=> {
+									println!("переменная: '{}'", args_[0]);
+									panic!("попытка записать значение в несуществующий объект.");
+								},
+							}
+						}
+					}
+					match args_[1] {
+						"\\s" => {
+							self.value_buffer[name_].push(' ');
+						},
+						"\\t" => {
+							self.value_buffer[name_].push('\t');
+						}, 
+						"\\n" => {
+							self.value_buffer[name_].push('\n');
+						},
+						_ => { 							
+							let mut args_save: Vec<&str> = save_.as_str().split(',').collect();
+							self.value_buffer[name_] += args_save[1]; 
+						},
+					}
+				}, 
+				"expand" => {
+					let save_ = args.clone();
+					let args = Words::trim(args.clone(), " \t");
+					let args_: Vec<&str> = args.as_str().split(',').collect();
+					let mut name_: usize = 0;
+					{
+						//let mut __temp: String = String::new();						
+						let _temp_: Vec<&str> = args_[0].clone().split('[').collect();
+						if _temp_.len() > 1 {
+							let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+							match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+								Ok(A) => { 
+									name_ = A;
+								},
+								Err(e)=> {
+									println!("переменная: '{}'", args_[0]);
+									panic!("попытка записать значение в несуществующий объект.");
+								},
+							}
+							//args__ = __temp.as_str();
+						} else {
+							match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+								Ok(A) => { 
+									name_ = A;
+								},
+								Err(e)=> {
+									println!("переменная: '{}'", args_[0]);
+									panic!("попытка записать значение в несуществующий объект.");
+								},
+							}
+						}
+					}
+					for i in 1..args_.len() {
+						let mut idx: usize = 0;
+						{
+						//let mut __temp: String = String::new();						
+							let _temp_: Vec<&str> = args_[0].clone().split('[').collect();
+							if _temp_.len() > 1 {
+								let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+								match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+									Ok(A) => { 
+										idx = A;
+									},
+									Err(e)=> {
+										let args_: Vec<&str> = save_.as_str().split(',').collect();
+										self.value_buffer[name_] += args_[i];
+										continue;
+									},
+								}
+								//args__ = __temp.as_str();
+							} else {
+								match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+									Ok(A) => { 
+										idx = A;
+									},
+									Err(e)=> {
+										let args_: Vec<&str> = save_.as_str().split(',').collect();
+										self.value_buffer[name_] += args_[i];
+										continue;
+									},
+								}
+							}
+							let temp_ = self.get_value_to_index(idx).expect("непредвиденная ошибка в expland");
+							self.value_buffer[name_] += temp_.as_str();
+						}
+					}
+				},
 				"exit" => {
 					println!("\n\n\n--------------------\nEXIT\nexit code: {}\n--------------------\n", args.clone());
 					panic!("exit programm");
@@ -1353,6 +1591,11 @@ pub mod Language{
                             21 => {
                                 // print
                                 last_op[0] = 21;
+								temp_buffer = String::new();
+								temp_weight_vec = Vec::new();
+								temp_values = String::new();
+								temp_name = String::new();
+								continue;
                             },
 							24 => {
 								// array
@@ -1894,6 +2137,7 @@ pub mod Language{
 							self.value_buffer.push(String::new());// было: temp_buffer.clone()
 							self.object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 							//  i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3])
+							//self.i_have_u(temp_buffer.clone(), temp_values.clone(), last_op.clone());
 							//println!("self.object_buffer: ", self.object_buffer.clone());
 							last_op[0] = 17; last_op[1] = 15; last_op[2] = 0;
 							
@@ -1943,52 +2187,100 @@ pub mod Language{
 						// либо: remove array[0]
 						// либо: remove object
 						// надо всё учитывать
-                        for i in 0..self.value_buffer.len() {
+						let mut i: usize = 0;
+						{
+							//let mut __temp: String = String::new();	
+							let t: String = Words::trim(temp_values.clone(), " \t\n");					
+							let _temp_: Vec<&str> = t.as_str().split('[').collect();
+							if _temp_.len() > 1 {
+								let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+								i = match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+									Ok(A) => { 
+										A
+									},
+									Err(e)=> {
+										println!("переменная: '{}'", temp_values);
+										panic!("удаляемый объект не найден");
+									},
+								};
+								//args__ = __temp.as_str();
+							} else {
+								i = match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+									Ok(A) => { 
+										 A
+									},
+									Err(e)=> {
+										println!("переменная: '{}'", temp_values);
+										panic!("удаляемый объект не найден");
+									},
+								};
+							}
+						}
+						self.value_buffer.remove(i);
+						self.object_buffer.remove(i);
+                        /*for i in 0..self.value_buffer.len() {
 							let name_: Vec<&str> = self.object_buffer[i].0.trim().split('.').collect();
                             if name_[0] == temp_values {
                                 self.value_buffer.remove(i);
                                 self.object_buffer.remove(i);
                                 break;
                             }
-                        }
+                        }*/
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
 						temp_values = String::new();
 						temp_name = String::new();
+						continue;
                     } else if last_op[0] == 21 && last_op[1] == 0 && last_op[2] == 0 {
                         { // print
-                            let t: String = temp_buffer.as_str().trim().to_string();
-							
-							let a = match self.get_index_hight_data(t, "".to_string()) { 
-								Ok(A) => { A },
-								Err(e) => { panic!("переменной не существует"); 0 },
-							};
-							let a = match self.get_value_to_index(a) {
+                            let t: String = Words::trim(temp_buffer.clone(), " \t");
+							let mut i: usize = 0;
+							{
+								//let mut __temp: String = String::new();						
+								let _temp_: Vec<&str> = t.as_str().split('[').collect();
+								if _temp_.len() > 1 {
+									let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+									i = match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+										Ok(A) => { 
+											A
+										},
+										Err(e)=> {
+											println!("{}", temp_buffer.clone());
+											last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+											temp_buffer = String::new();
+											temp_weight_vec = Vec::new();
+											temp_values = String::new();
+											temp_name = String::new();
+											continue;								
+											0 
+										},
+									};
+									//args__ = __temp.as_str();
+								} else {
+									i = match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+										Ok(A) => { 
+											A
+										},
+										Err(e)=> {
+											println!("{}", temp_buffer.clone());
+											last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+											temp_buffer = String::new();
+											temp_weight_vec = Vec::new();
+											temp_values = String::new();
+											temp_name = String::new();
+											continue;								
+											0 
+										},
+									};
+								}
+							}							
+							let a = match self.get_value_to_index(i) {
 								Ok(A) => { A },
 								Err(e)=> { panic!("нет значения. print"); String::new() },
 							};
 							println!("{}", a);
-                            /*for i in 0..self.object_buffer.len(){
-                                if t == self.object_buffer[i].0.as_str(){
-                                    if self.object_buffer[i].1 != 0 {
-                                        println!("{}", self.value_buffer[i]);
-                                    } else {
-                                        //get_neyron_name //self.neural_network
-                                        let mut u_for_neyron: usize = 0;
-                                        for k in 0..i {
-                                            if self.object_buffer[k].1 == 0 {
-                                                u_for_neyron += 1;
-                                            }
-                                        }*/
-                                        /*if u_for_neyron != 0 {
-                                            u_for_neyron -= 1;
-                                        }*/
-                                  //      println!("{}", self.neural_network.get_neyron_name(u_for_neyron));
-                                  //  }
-                                  //  break;
-                                //}
-                            //}
+                            
                         }
                         last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
                         temp_buffer = String::new();
@@ -2202,10 +2494,10 @@ pub mod Language{
 							temp_values = String::new();
 							temp_name = String::new();
 							continue;
-						}						
+						}												
 						let args_in_fn: String = match self.search_fn(temp_name.clone()){
 							Ok(A) => { A },
-							Err(e)=> { panic!("нет такой функции"); String::new() },
+							Err(e)=> { println!("{}", temp_name); panic!("нет такой функции"); String::new() },
 						};
 						//println!("{:?}", args_in_fn);
 						//panic!("stop");
@@ -2247,11 +2539,21 @@ pub mod Language{
 						temp_values = temp_buffer.clone();
 						last_op[2] = 17;
 						temp_buffer = String::new();
-				} else if last_op[0] == 17 && last_op[1] == 11 && last_op[2] == 15 {
+				} else if (last_op[0] == 17 && last_op[1] == 11 && last_op[2] == 15) || last_op[0] == 21 {
 					match ch {
-						' ' => { temp_buffer.push(ch.clone()) },
+						' ' => { temp_buffer.push(ch.clone()) },						
 						_ => {},
 					}
+					if last_op[0] == 21 {
+						temp_buffer.push(ch.clone());
+						continue;
+					}
+				} else if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 17 && ch == ')' {
+					temp_values = temp_buffer.clone();										
+					last_op[2] = 33;
+					//println!("\n\n\ntemp_values: {}", temp_values);
+					//panic!("");
+					continue;
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
 				match action { // блок занимающийся прочей обработкой	
@@ -2406,11 +2708,7 @@ pub mod Language{
 									temp_buffer.push(ch.clone());
 								},
 								')' => {
-									if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 17 {
-										temp_values = temp_buffer.clone();
-										last_op[2] = 33;
-										continue;
-									} else if last_op[0] == 35 {
+									if last_op[0] == 35 {
 										temp_values = temp_buffer.clone();
 										last_op[1] = 35; 
 										last_op[2] = 35;
@@ -2559,6 +2857,7 @@ pub mod Language{
 		}
 		
         pub fn i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3]) {
+			//println!("temp_buffer: {}\ntemp_values: {}", temp_buffer, temp_values);
 			let mut where_two_obj: bool = false;       
 			
 			// get_index_hight_data(имя, значение) // get_index_hight_data		
@@ -2629,15 +2928,9 @@ pub mod Language{
 					}
 					if result != 0.0 {
 						temp_buffer = result.clone().to_string();
-					}
-					/*unsafe {
-						math_text_ = prompt.as_ptr();
-
-						println!("{:?}", math_text_);
-
-						math_text_ = ptr::null();
-					}*/
-					//panic!("вошли в матан");
+					}					
+				} else {
+					//println!("\ntemp_buffer: {}\n--\n", temp_buffer);
 				}
 			}
 			/*let mut index_second_object: usize = match self.get_index_r(temp_buffer.clone()){
@@ -2871,6 +3164,9 @@ pub mod Language{
 					2 => {
 						self.value_buffer[index_first_object.clone()] = temp_buffer.as_str().trim().to_string();
 					},
+					3 => {
+						self.value_buffer[index_first_object.clone()] = temp_buffer;
+					}, 
 					_ => {},
 				}
 			}

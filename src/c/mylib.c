@@ -15,6 +15,17 @@ int libf(int val) {
 int say_hello_world(){
     printf("Hello, World!\n");
 }
+int say(char* row) {
+    printf(row);
+    printf("\n");
+    return 0;
+}
+
+char* say_and_return(char* row){
+    printf(row);
+    printf("\n");
+    return row;
+}
 
 int main(){
     return 0;

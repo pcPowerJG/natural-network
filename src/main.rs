@@ -42,23 +42,45 @@ fn main() {
     //self.get_all_func(text.clone(), temp_to_func.clone());
 	o.get_("
 
-
+object true_ =true
+object false_ =false
 object other =12
 object return_variable
 
+func for_test(void)\n
+    print OTHER:
+    push(other, \\n)
+    print other
+
+    print RETURN_VARIABLE:
+    print return_variable
+
+    print expand variable
+    print return_variable
+    print to:
+    expand(return_variable, return_variable, return_variable)
+    print return_variable    
+end_func
+
 loop 
     if other > 60
-        print other
+        print buy cirkle
+        print -----------------------------
         break
     end
     other = other + 0.5 : math    
 end_loop
 import(mylib.out, @lib)
     extern_func(lib, say_hello_world)
-    extern_func(lib, func_name, other, return_variable)
-    extern_func(lib, func_name, other)
+    extern_func(lib, say_and_return, other, return_variable)
+    extern_func(lib, say, other)
     extern_func(lib, say_hello_world)
 close_import(lib)
+print -----------------------------
+    for_test(other)
+print -----------------------------
+
+
 exit(0)
 ".to_string(), "".to_string(), 0); /*
 object toto_other=21

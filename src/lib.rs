@@ -2408,26 +2408,6 @@ pub mod Language{
 						//object_buffer: Vec<(String, usize)>, // наименования объектов // (name, type) 
 						// 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура
 						//value_buffer: Vec<String>, // значения 
-					} else if last_op[0] == 29 && last_op[1] == 17 {
-						let t_em_p: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
-						//println!("t_em_p -> {}", t_em_p.clone());
-						if t_em_p == 33 {
-						
-							let insert_to: usize = self.value_buffer.len() - last_op[2];
-							// pub fn insert(&mut self, index: usize, element: T)
-							temp_values.push('.');
-							temp_values += last_op[2].clone().to_string().as_str();
-							self.object_buffer.insert(insert_to, (temp_values, 4));
-							self.value_buffer.insert(insert_to, "".to_string());
-							//last_op[1] = 17; // ставим в некуда
-							
-							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
-							temp_buffer = String::new();
-							temp_weight_vec = Vec::new();
-							temp_values = String::new();
-							temp_name = String::new();
-							
-						}
 					} else if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 33 {
 						// name_func | arg | arg1 | ... | argN
 						// порядковый номер энтера '\n'
@@ -2554,6 +2534,26 @@ pub mod Language{
 					//println!("\n\n\ntemp_values: {}", temp_values);
 					//panic!("");
 					continue;
+				} else if last_op[0] == 29 && last_op[1] == 17 {
+					temp_buffer = Words::trim(temp_buffer.clone(), " \t\n");
+					let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
+					//println!("t_em_p -> {}", temp_buffer.clone());
+					if action == 33 {
+						//panic!("");
+						let insert_to: usize = self.value_buffer.len() - last_op[2];
+						// pub fn insert(&mut self, index: usize, element: T)
+						temp_values.push('.');
+						temp_values += last_op[2].clone().to_string().as_str();
+						self.object_buffer.insert(insert_to, (temp_values, 4));
+						self.value_buffer.insert(insert_to, "".to_string());
+						//last_op[1] = 17; // ставим в некуда
+						
+						last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+						temp_buffer = String::new();
+						temp_weight_vec = Vec::new();
+						temp_values = String::new();
+						temp_name = String::new();						
+					}
 				}
 				let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());  
 				match action { // блок занимающийся прочей обработкой	

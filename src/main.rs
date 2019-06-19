@@ -47,7 +47,19 @@ object false_ =false
 object other =12
 object return_variable
 
-func for_test(void)\n
+struct str1
+    object hello
+    object hello1
+end
+func test_array(void)
+    array ar =one,two,tree
+    remove ar[2]
+    remove ar[1]
+    remove ar[0]
+    remove ar
+end_func
+
+func for_test(void)
     print OTHER:
     push(other, \\n)
     print other

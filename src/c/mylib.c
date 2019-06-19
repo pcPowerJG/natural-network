@@ -12,6 +12,9 @@ int libf(int val) {
     printf("libf addr is %p, ret value is %i\n", mymainf, (int)(*mymainf)(60));
     return 10;    
 }
+int say_hello_world(){
+    printf("Hello, World!\n");
+}
 
 int main(){
     return 0;

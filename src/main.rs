@@ -43,19 +43,24 @@ fn main() {
 	o.get_("
 
 
-object lib=hello_ivi.out
-object func_=say_hello
 object other =12
-if other > 10.5
-    print func_
-end
-import(lib, lib1, lib2)
-    extern_func(lib, func_, other, return_variable)
-    extern_func(lib, func_, other)
-    extern_func(lib, func_)
-close_import(lib, lib1, lib2)
+object return_variable
 
-".to_string(), "".to_string(), false, 0); /*
+loop 
+    if other > 60
+        print other
+        break
+    end
+    other = other + 0.5 : math    
+end_loop
+import(mylib.out, @lib)
+    extern_func(lib, say_hello_world)
+    extern_func(lib, func_name, other, return_variable)
+    extern_func(lib, func_name, other)
+    extern_func(lib, say_hello_world)
+close_import(lib)
+exit(0)
+".to_string(), "".to_string(), 0); /*
 object toto_other=21
 object gb =Good Bue looper_
 func hello(arg1)

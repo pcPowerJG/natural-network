@@ -114,6 +114,7 @@ pub mod Language{
 	use libc::size_t;
 	use std::ffi::CString;
 	use std::ptr;
+	use std::ffi::CStr;
 
 	#[link(name = "math")]
 	extern {
@@ -130,6 +131,12 @@ pub mod Language{
 		fn close(lib: *const libc::c_void) -> i32;
 		//int int_rf_func(void* handle, char * func_name, int arg){
 		fn int_rf_func(handle: *const libc::c_void, func_name: *const libc::c_char, arg: libc::c_int) -> i32;
+		//char* char_rf_func(void* handle, char * func_name, char* arg){
+		fn char_rf_func(handle: *const libc::c_void, func_name: *const libc::c_char, arg: *const libc::c_char) -> *const libc::c_char;
+		// int_rf_char_func(void* handle, char * func_name, char* arg){
+		fn int_rf_char_func(handle: *const libc::c_void, func_name: *const libc::c_char, arg: *const libc::c_char) -> i32;
+		// int int_rf_func(void* handle, char * func_name){
+		fn int_rf_void_func(handle: *const libc::c_void, func_name: *const libc::c_char) -> i32;
 	}
 	
 	// endpointautomate
@@ -142,6 +149,7 @@ pub mod Language{
 			object_buffer: Vec<(String, usize)>,              // наименования объектов 	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер, 3 - массив, 4 - структура, 10 - функция
 	        value_buffer: Vec<String>,                        // значения 
 			import_handle: Vec<*const libc::c_void>,
+			import_names: Vec<String>,
 	}
 	pub fn on_create() -> Words {
 		let mut words: Vec<String> = Vec::new(); 
@@ -314,6 +322,7 @@ pub mod Language{
 			object_buffer: Vec::new(), 
 			value_buffer: Vec::new(),
 			import_handle: Vec::new(),
+			import_names: Vec::new(),
 		}
 	}
 	//impl
@@ -979,7 +988,297 @@ pub mod Language{
 			}
 			result_row
 		}
-		pub fn get_(&mut self, text: String, mut call_to_fn: String, mut loop_active: bool, looper: usize) -> u8 {
+		pub fn spec_func(&mut self, name: String, args: String) -> bool {
+			// "import", "close_import", "extern_func", "exit"
+			//println!("пришло:\n name: {}\n args: {}", name, args);
+			match name.as_str() {
+				"import" => { 
+					let args = Words::trim(args.clone(), " \t");
+					let mut inputs_lib: Vec<&str> = args.as_str().split(',').collect();		
+					let mut __temp: String = String::new();
+					let len_: usize = inputs_lib.clone().len();					
+					
+					for i in 0..len_ {
+						if inputs_lib[i] == "" {
+							inputs_lib.remove(i);
+						} else {
+							for name_ in self.import_names.clone() {
+								if inputs_lib[i] == name_.as_str() {
+									println!("import re-open: '{}'", inputs_lib[i].clone());
+									//inputs_lib.remove(i.clone());
+									continue;
+								}
+							}
+							/*
+								fn open(lib_path: *const libc::c_char) -> *const libc::c_void;
+								fn close(lib: *const libc::c_void) -> i32;
+							*/
+							let name__: Vec<&str> = inputs_lib[i].clone().split('@').collect();
+							let mut _name_: String = String::new();
+							if name__.len() > 1 {
+								_name_ = name__[1].to_string();
+								let len__: usize = self.import_names.len() - 1;
+								self.import_names[len__] = _name_.clone();
+							} else {
+								_name_ = name__[0].to_string();
+								self.import_names.push(_name_.clone());
+								let connect_string = match CString::new(inputs_lib[i].clone()) {
+									Ok(A) => { A },
+									Err(e)=> { 
+										println!("библиотека: {}", inputs_lib[i].clone());
+										panic!("не удалось обработать строку подключения библиотеки"); 
+										CString::new(inputs_lib[i].clone()).unwrap() 
+									},
+								};
+								//let lib_name = CString::new("math_.out").unwrap(); // inputs_lib[i]
+								unsafe {
+									self.import_handle.push(open(connect_string.as_ptr()));
+								}
+							}							
+						}
+					}
+					// import_handle: Vec<*const libc::c_void>,
+					// import_names: Vec<String>,
+				},
+				"close_import" => {
+					let args = Words::trim(args.clone(), " \t");
+					let mut inputs_lib: Vec<&str> = args.as_str().split(',').collect();		
+					let mut __temp: String = String::new();
+					let lib_clone = inputs_lib.clone();			
+					let len_: usize = inputs_lib.clone().len();
+					// import_handle: Vec<*const libc::c_void>,
+					// import_names: Vec<String>,
+					for lib__ in inputs_lib {
+						for i in 0..self.import_names.clone().len() {
+							if lib__ == self.import_names[i].as_str() {
+								self.import_names.remove(i);
+								unsafe {
+									close(self.import_handle[i]);
+								}
+								self.import_handle.remove(i);
+							}
+						}
+					}
+					/*
+						fn open(lib_path: *const libc::c_char) -> *const libc::c_void;
+						fn close(lib: *const libc::c_void) -> i32;
+					*/
+				},
+				"extern_func" => {
+					//
+					let args = Words::trim(args.clone(), " \t");
+					let mut args_: Vec<&str> = args.as_str().split(',').collect();
+					let mut lib_name: String = args_[0].clone().to_string();
+					//let lib_clone = inputs_lib.clone();
+					let len_: usize = args_.clone().len();
+					if args_.len() == 1 {
+						println!("ошибка при вызове функции. вызываемая функция не указана");
+					} else if args_.len() == 2 { 
+						// либа, функция
+						// *const libc::c_char
+
+						// fn int_rf_void_func(handle: *const libc::c_void,
+						// func_name: *const libc::c_char) -> i32;
+						/*
+							let lib_name = CString::new("math_.out").unwrap();							
+							{ 
+								result_string = lib_name.as_c_str().to_str().unwrap().to_string();
+								println!("result_string: {}", result_string);
+							}
+						*/
+						let func_name = match CString::new(args_[1].clone()) {
+							Ok(A) => { A },
+							Err(e)=> { 
+								println!("ошибка вызова C-функции. ошибка преобразования строки вызова функции: '{}'", args_[1].clone()); 
+								return true;
+								CString::new(lib_name).unwrap() 
+							},
+						};
+						// import_handle: Vec<*const libc::c_void>,
+						// import_names: Vec<String>,
+						for i in 0..self.import_names.clone().len() {
+							if self.import_names[i] == lib_name {
+								unsafe{
+									int_rf_void_func(self.import_handle[i], func_name.as_ptr());
+								} return true;
+							}
+						}
+						
+					} else if args_.len() == 3 {
+						// либа, функция, аргумент
+						// fn int_rf_char_func(handle: *const libc::c_void, 
+						// func_name: *const libc::c_char,
+						// arg: *const libc::c_char)
+						// -> i32;
+						let mut __temp: String = String::new();
+						let mut args__: &str = "";
+						let _temp_: Vec<&str> = args_[2].clone().split('[').collect();
+						if _temp_.len() > 1 {
+							let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+							match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+								Ok(A) => { 
+									match self.get_value_to_index(A) {
+										Ok(B) => { __temp = B.clone(); },
+										Err(e)=> { panic!("попытка отправки в C функцию несуществующего значения"); },
+									}
+								},
+								Err(e)=> {
+									__temp = args_[2].clone().to_string();
+								},
+							}
+							args__ = __temp.as_str();
+						} else {
+							//let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+							match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+								Ok(A) => { 
+									match self.get_value_to_index(A) {
+										Ok(B) => { __temp = B.clone(); },
+										Err(e)=> { panic!("попытка отправки в C функцию несуществующего значения"); },
+									}
+								},
+								Err(e)=> {
+									__temp = args_[2].clone().to_string();
+								},
+							}
+							args__ = __temp.as_str();
+						}
+						//let idx: usize = self.get_index_hight_data()
+						let func_name = match CString::new(args_[1].clone()) {
+							Ok(A) => { A },
+							Err(e)=> { 
+								println!("ошибка вызова C-функции. ошибка преобразования строки вызова функции: '{}'", args_[1].clone()); 
+								return true;
+								CString::new(lib_name).unwrap() 
+							},
+						};
+						let func_arg = match CString::new(args__.clone()) {
+							Ok(A) => { A },
+							Err(e)=> { 
+								println!("ошибка вызова C-функции. ошибка преобразования аргумента функции: '{}'", args_[1].clone()); 
+								return true;
+								CString::new(lib_name).unwrap() 
+							},
+						};
+						// import_handle: Vec<*const libc::c_void>,
+						// import_names: Vec<String>,
+						for i in 0..self.import_names.clone().len() {
+							if self.import_names[i] == lib_name {
+								unsafe{
+									int_rf_char_func(self.import_handle[i], func_name.as_ptr(), func_arg.as_ptr());
+								} return true;
+							}
+						}
+					} else if args_.len() == 4 {
+						// либа, функция, аргумент, объект в который записываем результат выполения
+						/*
+							let lib_name = CString::new("math_.out").unwrap();							
+							{ 
+								result_string = lib_name.as_c_str().to_str().unwrap().to_string();
+								println!("result_string: {}", result_string);
+							}
+						*/
+						let mut idx_return_obj: usize = 0;
+						{
+							let mut __temp: String = String::new();
+							let mut args__: &str = "";
+							let _temp_: Vec<&str> = args_[3].clone().split('[').collect();
+							if _temp_.len() > 1 {
+								let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+								match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+									Ok(A) => { 
+										idx_return_obj = A;
+									},
+									Err(e)=> {
+										println!("функция: '{}'", args_[0]);
+										panic!("попытка записать значение в несуществующий объект.");
+									},
+								}
+								//args__ = __temp.as_str();
+							} else {
+								match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+									Ok(A) => { 
+										idx_return_obj = A;
+									},
+									Err(e)=> {
+										println!("функция: '{}'", args_[0]);
+										panic!("попытка записать значение в несуществующий объект.");
+									},
+								}
+							}
+						}
+
+						let mut __temp: String = String::new();
+						let mut args__: &str = "";
+						let _temp_: Vec<&str> = args_[2].clone().split('[').collect();
+						if _temp_.len() > 1 {
+							let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+							match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+								Ok(A) => { 
+									match self.get_value_to_index(A) {
+										Ok(B) => { __temp = B.clone(); },
+										Err(e)=> { panic!("попытка отправки в C функцию несуществующего значения"); },
+									}
+								},
+								Err(e)=> {
+									__temp = args_[2].clone().to_string();
+								},
+							}
+							args__ = __temp.as_str();
+						} else {
+							//let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+							match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+								Ok(A) => { 
+									match self.get_value_to_index(A) {
+										Ok(B) => { __temp = B.clone(); },
+										Err(e)=> { panic!("попытка отправки в C функцию несуществующего значения"); },
+									}
+								},
+								Err(e)=> {
+									__temp = args_[2].clone().to_string();
+								},
+							}
+							args__ = __temp.as_str();
+						}
+						//let idx: usize = self.get_index_hight_data()
+						let func_name = match CString::new(args_[1].clone()) {
+							Ok(A) => { A },
+							Err(e)=> { 
+								println!("ошибка вызова C-функции. ошибка преобразования строки вызова функции: '{}'", args_[1].clone()); 
+								return true;
+								CString::new(lib_name).unwrap() 
+							},
+						};
+						let func_arg = match CString::new(args__.clone()) {
+							Ok(A) => { A },
+							Err(e)=> { 
+								println!("ошибка вызова C-функции. ошибка преобразования аргумента функции: '{}'", args_[1].clone()); 
+								return true;
+								CString::new(lib_name).unwrap() 
+							},
+						};
+						// import_handle: Vec<*const libc::c_void>,
+						// import_names: Vec<String>,
+						for i in 0..self.import_names.clone().len() {
+							if self.import_names[i] == lib_name {
+								unsafe{
+									let result: &str = match CStr::from_ptr(char_rf_func(self.import_handle[i], func_name.as_ptr(), func_arg.as_ptr())).to_str(){
+										Ok(A) => { A },
+										Err(e)=> { panic!("ошибка преобразования строк"); "" },
+									};
+									self.value_buffer[idx_return_obj] = result.to_string();
+								} return true;
+							}
+						}
+					}
+				}, 
+				"exit" => {
+					println!("\n\n\n--------------------\nEXIT\nexit code: {}\n--------------------\n", args.clone());
+					panic!("exit programm");
+				},
+				_ => { return false; },
+			} true
+		}
+		pub fn get_(&mut self, text: String, mut call_to_fn: String, looper: usize) -> u8 {
 						
 			//let mut variables_name: Vec<String> = Vec::new();
 			
@@ -1029,7 +1328,7 @@ pub mod Language{
 			let mut last_op: [usize; 3] = [0; 3];					//  ...
 			//-----------------------------------------------------------------------------------------------------------------
 			for ch in text.chars() {				
-				//println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\ntemp_name - {:?}\nself.value_buffer.len() - {:?}\nself.value_buffer: {:?}\nself.object_buffer - {:?}\nloop_active: {}\nbools_var: {}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), temp_name.clone(), self.value_buffer.clone().len(), self.value_buffer.clone(), self.object_buffer.clone(), loop_active.clone(), bools_var.clone());
+				//println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\ntemp_name - {:?}\nself.value_buffer.len() - {:?}\nself.value_buffer: {:?}\nself.object_buffer - {:?}\nbools_var: {}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), temp_name.clone(), self.value_buffer.clone().len(), self.value_buffer.clone(), self.object_buffer.clone(), bools_var.clone());
 				if loop_active_ {
 					temp_doubler.push(ch.clone());
 				}
@@ -1118,12 +1417,7 @@ pub mod Language{
 								temp_values = String::new();
 								temp_name = String::new();
 							},
-							40 => { loop_active_ = true; },
-							42 => { 
-								if looper == looper_value {
-									return 2;
-								}
-							},
+							40 | 41 | 42 => { temp_values = temp_buffer.clone(); },							
 							_ => {
 								
 							},
@@ -1234,11 +1528,12 @@ pub mod Language{
 					// код осуществляющий работу
 					//
 					if last_op[0] == 0 && last_op[1] == 0 && last_op[2] == 0 {
-						//panic!("");
-						//let temp_buffer_vec: Vec<&str> = temp_buffer.as_str().split(' ').collect();
-						//temp_buffer = temp_buffer_vec[0].clone().to_string();
-						let action: usize = Words::get_action_lite(self.words.clone(), Words::trim(temp_buffer.clone(), " \t\n"));
-						//println!("action: {}", action.clone());
+						temp_buffer = Words::trim(temp_buffer.clone(), " \t\n");
+						if temp_buffer == "".to_string() {
+							temp_buffer = temp_values.clone();
+							temp_buffer = Words::trim(temp_buffer.clone(), " \t\n");
+						}
+						let action: usize = Words::get_action_lite(self.words.clone(), temp_buffer.clone());
 						if action == 33 {
 							bools_var = false;
 							//panic!("");
@@ -1273,7 +1568,7 @@ pub mod Language{
 							temp_weight_vec = Vec::new();
 							temp_values = String::new();
 							temp_name = String::new();
-						} else if action == 41 && func_inactive {							
+						} else if action == 41 && func_inactive {					
 							looper_value -= 1;
 							
 							if looper_value == 0 {
@@ -1306,14 +1601,11 @@ pub mod Language{
 								//println!("strn_:\n{}", strn_);
 								//println!("-----------------");
 								//println!("looper: {}\t result: {}",looper, 
-								while self.get_(strn_.clone(), "".to_string(), false, looper + 1) != 2 {
+								while self.get_(strn_.clone(), "".to_string(), looper + 1) != 2 {
 
 								}
 								//panic!("");
 								loop_active_ = false;
-								/*if looper == 2 {									
-									//panic!("");
-								}*/
 							}
 							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
 							temp_buffer = String::new();
@@ -1321,7 +1613,7 @@ pub mod Language{
 							temp_values = String::new();
 							temp_name = String::new();
 							continue;
-							loop_active = false;
+							//loop_active = false;
 							let funks: Vec<&str> = temp_buffer.as_str().split('#').collect();
 							if funks.len() > 1 {
 								//println!("temp_doubler: \n{}", temp_doubler);
@@ -1358,7 +1650,7 @@ pub mod Language{
 							//println!("spaces: \n{:?}", spaces.clone());
 
 							//panic!("");
-							while self.get_(strn_.clone(), "".to_string(), true, looper + 1) != 2 {
+							while self.get_(strn_.clone(), "".to_string(), looper + 1) != 2 {
 								
 							} 
 							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
@@ -1598,7 +1890,7 @@ pub mod Language{
 							last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 							continue; 
 						}*/
-						if !loop_active && looper == 0 {
+						//if !loop_active && looper == 0 {
 							self.value_buffer.push(String::new());// было: temp_buffer.clone()
 							self.object_buffer.push((temp_values.clone(), 1));	// (name, type) // 0 - нейрон, 1 -  объект, 2 - сервер
 							//  i_have_u(&mut self, mut temp_buffer: String, mut temp_values: String, last_op: [usize; 3])
@@ -1608,7 +1900,7 @@ pub mod Language{
 							
 							
 							self.i_have_u(temp_buffer.clone(), temp_values.clone(), last_op.clone());
-						}
+						//}
                         //println!("{:?}\n{:?}\n{:?}", self.object_buffer, self.value_buffer.clone(), self.neural_network.debug()); // ДЛЯ КОСЯКОВ
                         temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
@@ -1627,10 +1919,10 @@ pub mod Language{
 							last_op[0] = 0;	last_op[1] = 0;	last_op[2] = 0;
 							continue; 
 						}*/
-						if !loop_active && looper == 0 {
+						//if !loop_active && looper == 0 {
 							self.value_buffer.push(String::new());
 							self.object_buffer.push((temp_buffer.clone(), 1));
-						}
+						//}
 						temp_buffer = String::new();
 						temp_weight_vec = Vec::new();
 						temp_values = String::new();
@@ -1847,7 +2139,7 @@ pub mod Language{
 					} else if last_op[0] == 20 && last_op[1] == 17 && last_op[2] == 33 {
 						// name_func | arg | arg1 | ... | argN
 						// порядковый номер энтера '\n'
-						if !loop_active && looper == 0 {
+						if looper == 0 {
 							//println!("looper: {}", looper.clone())
 							let args_: Vec<&str> = temp_values.as_str().split(',').collect();
 
@@ -1892,10 +2184,25 @@ pub mod Language{
 						*/
 						let mut spec_func: bool = false;
 						let mut spec_func_name: String = String::new();
-						let spec_func_names: Vec<&str> = vec![
+						/*let spec_func_names: Vec<&str> = vec![
 							"import", "close_import", "extern_func", "exit"
 						];
-						panic!("");
+						for name_ in spec_func_names {
+							if name_ == temp_name.as_str() {
+								spec_func = true;
+								break;
+							}
+						}*/
+						if self.spec_func(temp_name.clone(), temp_values.clone()) {
+							//...							
+							//panic!("");
+							last_op[0] = 0; last_op[1] = 0; last_op[2] = 0;
+							temp_buffer = String::new();
+							temp_weight_vec = Vec::new();
+							temp_values = String::new();
+							temp_name = String::new();
+							continue;
+						}						
 						let args_in_fn: String = match self.search_fn(temp_name.clone()){
 							Ok(A) => { A },
 							Err(e)=> { panic!("нет такой функции"); String::new() },
@@ -1914,7 +2221,7 @@ pub mod Language{
 						//pub fn get_(&mut self, text: String, mut call_to_fn: String) -> u8
 						//println!("вызываем функцию, передаём:");
 						//println!("temp_buffer: {}\ntext: \n{}", temp_buffer.clone(), text.clone());
-						let temp__ = self.get_(text.clone(), run_row.clone(), false, looper);
+						let temp__ = self.get_(text.clone(), run_row.clone(), looper);
 						if /*temp_buffer.as_str().trim() == "end_loop" 
 								&&*/ temp__ != 1 && temp__ != 0 {
 							println!("temp__: {}", temp__.clone());

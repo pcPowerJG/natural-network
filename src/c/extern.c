@@ -27,8 +27,11 @@ int close(void * handle){
 }
 void *open(char * lib_path) {
     void *handle;
-    if ((handle=dlopen (lib_path, RTLD_LAZY)) == NULL){
-        printf("Не удалось подключить библиотеку...\n");        
+    if ((handle=dlopen (lib_path, RTLD_LAZY)) == NULL){        
+        printf("Error in lib '");
+        printf(lib_path);        
+        printf("' ");
+        printf(": 'не удалось подключить библиотеку, проверьте путь...'\n");
         return handle;
     }
     return handle;
@@ -37,7 +40,9 @@ char* char_rf_func(void* handle, char * func_name, char* arg){
     char* (*mylibf)(char* val);
     mylibf = dlsym(handle, func_name);
     if (dlerror() != NULL){
-        printf("Не удалось обратится к функции");
+        printf("Не удалось обратится к функции ");
+        printf(func_name);
+        printf("\n");
         return "-1";
     }
     return (char*)(*mylibf)(arg);  
@@ -46,7 +51,9 @@ int int_rf_char_func(void* handle, char * func_name, char* arg){
     int (*mylibf)(char* val);
     mylibf = dlsym(handle, func_name);
     if (dlerror() != NULL){
-        printf("Не удалось обратится к функции");
+        printf("Не удалось обратится к функции ");
+        printf(func_name);
+        printf("\n");
         return -1;
     }
     return (int)(*mylibf)(arg);
@@ -55,7 +62,9 @@ int int_rf_func(void* handle, char * func_name, int arg){
     int (*mylibf)(int val);
     mylibf = dlsym(handle, func_name);
     if (dlerror() != NULL){
-        printf("Не удалось обратится к функции");
+        printf("Не удалось обратится к функции ");
+        printf(func_name);
+        printf("\n");
         return -1;
     }
     return (int)(*mylibf)(arg);
@@ -70,6 +79,17 @@ int lib_call(char* lib_path, char* func_name, char* arg_func){
         return -2;
     
     return (int)(*mylibf)(arg_func);
+}
+int int_rf_void_func(void* handle, char * func_name){
+    int (*mylibf)();
+    mylibf = dlsym(handle, func_name);
+    if (dlerror() != NULL){
+        printf("Не удалось обратится к функции ");
+        printf(func_name);
+        printf("\n");
+        return -1;
+    }
+    return (int)(*mylibf)();
 }
 // gcc -o main  -fPIC -ldl -rdynamic main.c; gcc -o mylib.so -fPIC -shared mylib.c
 /*

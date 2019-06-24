@@ -69,17 +69,6 @@ int int_rf_func(void* handle, char * func_name, int arg){
     }
     return (int)(*mylibf)(arg);
 }
-int lib_call(char* lib_path, char* func_name, char* arg_func){
-    void *handle;
-    int (*mylibf)(char *val);
-    if ((handle=dlopen (lib_path, RTLD_LAZY)) == NULL)
-        return -1;
-    mylibf = dlsym(handle, func_name);
-    if (dlerror() != NULL)
-        return -2;
-    
-    return (int)(*mylibf)(arg_func);
-}
 int int_rf_void_func(void* handle, char * func_name){
     int (*mylibf)();
     mylibf = dlsym(handle, func_name);
@@ -91,6 +80,18 @@ int int_rf_void_func(void* handle, char * func_name){
     }
     return (int)(*mylibf)();
 }
+int lib_call(char* lib_path, char* func_name, char* arg_func){
+    void *handle;
+    int (*mylibf)(char *val);
+    if ((handle=dlopen (lib_path, RTLD_LAZY)) == NULL)
+        return -1;
+    mylibf = dlsym(handle, func_name);
+    if (dlerror() != NULL)
+        return -2;
+    
+    return (int)(*mylibf)(arg_func);
+}
+// строка сборки (флаги для gcc)
 // gcc -o main  -fPIC -ldl -rdynamic main.c; gcc -o mylib.so -fPIC -shared mylib.c
 /*
 int main(){

@@ -6,11 +6,39 @@ use std::net::*;
 use std::thread;
 use std::io::Write;
 use std::io::Read;
+use std::env;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
 
 fn main() {
     //println!("Hello, world!");
-    let mut program_text: Vec<String> = Vec::new();
-	let mut o = Language::on_create();
+	let mut o = Language::on_create();    
+
+    // Prints each argument on a separate line
+    for argument in env::args() {
+        //println!("args: {}", (argument as String));
+        let arg1 = (argument as String);
+        let end_f: Vec<&str> = arg1.as_str().split('.').collect();
+        if end_f.len() > 1 && end_f[1].clone() == "gorge" {
+            // path: (argument as String)
+            let mut path: String = end_f[0].clone().to_string();
+            path.push('.');
+            path += end_f[1].clone();
+            //println!("path to file: {}\n\n", path);
+            let file = File::open(path.as_str()).unwrap();
+            let mut buf_reader = BufReader::new(file);
+            let mut contents = String::new();
+            buf_reader.read_to_string(&mut contents).unwrap();
+            //assert_eq!(contents, "Hello, world!");
+            o.get_(contents, "".to_string(), 0);  
+            //o.drop(); 
+            //drop(contents);
+            //drop(buf_reader);
+            //panic!("");
+        }       
+        //o.get_("".to_string(), "".to_string(), 0);
+    }
     /*let listener = TcpListener::bind("127.0.0.1:9273").unwrap();
     println!("listening started, ready to accept");
     //fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize>
@@ -40,7 +68,7 @@ fn main() {
         });
     }*/
     //self.get_all_func(text.clone(), temp_to_func.clone());
-	o.get_("
+	/*o.get_("
 
 object true_ =true
 object false_ =false
@@ -94,7 +122,7 @@ print -----------------------------
 
 
 exit(0)
-".to_string(), "".to_string(), 0); /*
+".to_string(), "".to_string(), 0); *//*
 object toto_other=21
 object gb =Good Bue looper_
 func hello(arg1)

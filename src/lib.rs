@@ -1159,8 +1159,8 @@ pub mod Language{
 							}							
 						}
 					}
-					// import_handle: Vec<*const libc::c_void>,
-					// import_names: Vec<String>,
+						// import_handle: Vec<*const libc::c_void>,
+						// import_names: Vec<String>,
 				},
 				"close_import" => {
 					let args = Words::trim(args.clone(), " \t");
@@ -1515,6 +1515,15 @@ pub mod Language{
 				},
 				_ => { return false; },
 			} true
+		}
+		pub fn drop(&mut self) {				
+			self.words = Vec::new();  
+			//self.neural_network = Vec::new();
+			self.servers = Vec::new();
+			self.object_buffer = Vec::new();
+			self.value_buffer = Vec::new();
+			self.import_handle = Vec::new();
+			self.import_names = Vec::new();
 		}
 		pub fn get_(&mut self, text: String, mut call_to_fn: String, looper: usize) -> u8 {
 						

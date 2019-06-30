@@ -116,6 +116,8 @@ pub mod Language{
 	use std::ptr;
 	use std::ffi::CStr;
 
+	use std::io;
+
 	#[link(name = "math")]
 	extern {
 		fn eval(text: *const libc::c_char)->f32;
@@ -1509,6 +1511,50 @@ pub mod Language{
 						}
 					}
 				},
+				"read_line" => {
+					let args = Words::trim(args.clone(), " \t");
+					let mut read_vars: Vec<&str> = args.as_str().split(',').collect();		
+					let mut __temp: String = String::new();
+					let len_: usize = read_vars.clone().len();
+					let mut input = String::new();
+					match io::stdin().read_line(&mut input) {
+						Ok(A) => {
+
+						}
+						Err(e) => { println!("error: {:?}", e); panic!("не удалось считать данные.") },
+					}
+					for var__ in read_vars {
+						let mut name_: usize = 0;
+						{
+							//let mut __temp: String = String::new();						
+							let _temp_: Vec<&str> = var__.clone().split('[').collect();
+							if _temp_.len() > 1 {
+								let _temp__: Vec<&str> = _temp_[1].clone().split(']').collect();							
+								match self.get_index_hight_data(_temp_[0].to_string(), _temp__[0].to_string()) {
+									Ok(A) => { 
+										name_ = A;
+									},
+									Err(e)=> {
+										println!("переменная: '{}'", var__);
+										panic!("попытка записать значение в несуществующий объект.");
+									},
+								}
+								//args__ = __temp.as_str();
+							} else {
+								match self.get_index_hight_data(_temp_[0].to_string(), "".to_string()) {
+									Ok(A) => { 
+										name_ = A;
+									},
+									Err(e)=> {
+										println!("переменная: '{}'", var__);
+										panic!("попытка записать значение в несуществующий объект.");
+									},
+								}
+							}
+						}
+						self.value_buffer[name_] = input.clone(); 
+					}
+				},
 				"exit" => {
 					println!("\n\n\n--------------------\nEXIT\nexit code: {}\n--------------------\n", args.clone());
 					panic!("exit programm");
@@ -1574,7 +1620,8 @@ pub mod Language{
 
 			let mut last_op: [usize; 3] = [0; 3];					//  ...
 			//-----------------------------------------------------------------------------------------------------------------
-			for ch in text.chars() {				
+			for ch in text.chars() {
+				// раскомментировать при деббагинге. вывод значений всех переменных				
 				//println!("ch - {:?}\n last_op - {:?}\ntemp_buffer - {:?}\ntemp_values - {:?}\ntemp_name - {:?}\nself.value_buffer.len() - {:?}\nself.value_buffer: {:?}\nself.object_buffer - {:?}\nbools_var: {}", ch.clone(), last_op.clone(), temp_buffer.clone(), temp_values.clone(), temp_name.clone(), self.value_buffer.clone().len(), self.value_buffer.clone(), self.object_buffer.clone(), bools_var.clone());
 				if loop_active_ {
 					temp_doubler.push(ch.clone());

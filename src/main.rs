@@ -42,13 +42,13 @@ fn main() {
             path += end_f[1].clone();
             {                
                 let mut contents = String::new();
-		unsafe {
-			let result = match CStr::from_ptr(read_file(CString::new(path).expect("ошибка передачи аргумента. ошибка преобразования.").as_ptr())).to_str() {
-				Ok(A) => { A },
-				Err(e)=> { panic!("не удалось открыть файл, ошибка преобразования строк. файл должен быть в кодировке utf-8"); "" },
-			};		
-			contents = result.to_string();
-		}
+                unsafe {
+                    let result = match CStr::from_ptr(read_file(CString::new(path).expect("ошибка передачи аргумента. ошибка преобразования.").as_ptr())).to_str() {
+                        Ok(A) => { A },
+                        Err(e)=> { panic!("не удалось открыть файл, ошибка преобразования строк. файл должен быть в кодировке utf-8"); "" },
+                    };		
+                    contents = result.to_string();
+                }
                 o.get_(contents, "".to_string(), 0);  
             }
         }

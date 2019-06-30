@@ -10,4 +10,10 @@ fn main() {
         .flag("-ldl")
         .flag("-rdynamic")
         .compile("libto_extern.a");
+    cc::Build::new()
+        .file("./src/c/open_file.c")
+        .flag("-fPIC")
+        .flag("-ldl")
+        .flag("-rdynamic")
+        .compile("libopen_file.a");
 }

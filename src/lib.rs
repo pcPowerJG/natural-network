@@ -79,7 +79,7 @@ pub mod language{
 			end_func
 			
 		*/ 			
-		words.push("eq".to_string()); //  11
+		words.push("return".to_string()); //  11
 		words.push("!eq".to_string());//  12
 		words.push(">".to_string());  //  13
 		words.push("<".to_string());  //  14
@@ -159,16 +159,13 @@ pub mod language{
 			(String::new(), 0, false)
 		}
 		fn is_math(txt: String) -> bool {
-			if txt.split('+').collect::<Vec<&str>>().len() > 1 || 
-				txt.split('-').collect::<Vec<&str>>().len() > 1 || 
-				txt.split('*').collect::<Vec<&str>>().len() > 1 || 
-				txt.split('/').collect::<Vec<&str>>().len() > 1 || 
-				txt.split('^').collect::<Vec<&str>>().len() > 1 {
-					true
-			} else {
-				false
-			}
-		}
+			for ch in txt.chars() {
+				match ch {
+					'+' | '-' | '*' | '/' | '^' => { return true; },
+					_ => { },
+				}
+			} false
+		}		
 		fn if_work(&self, text: String) -> bool {
 			let mut bracets_count: i32 = -1;
 			let mut result: bool = false;
@@ -195,26 +192,27 @@ pub mod language{
 				match ch {
 					' ' | '\t' => { continue; },
 					'\n' => {
+						//fn match_operation(operation: u8, operation1: u8, value_a: &mut String, value_b: &mut String, result: &mut bool) {
 						match operation {
 							1 | 2 => { 
-								result = (if (value_a == 1i32.to_string()) && (value_b == 1i32.to_string()) { true } 
-									else { false });
+								result = if value_a == 1i32.to_string() && value_b == 1i32.to_string() { true } 
+									else { false };
 							},
 							3 | 4 => {
-								result = (if (value_a == 1i32.to_string()) || (value_b == 1i32.to_string()) { true } 
-									else { false });
+								result = if value_a == 1i32.to_string() || value_b == 1i32.to_string() { true } 
+									else { false };
 							},
 							5 => {
 								result = 
-								(if value_a.parse::<f64>().expect("не мат выражение") > value_b.parse::<f64>()
+								if value_a.as_str().to_string().parse::<f64>().expect("не мат выражение") > value_b.to_string().parse::<f64>()
 									.expect("не мат выражение") { true } 
-									else { false });
+									else { false };
 							},
 							6 => {
 								result = 
-								(if value_a.parse::<f64>().expect("не мат выражение") >= value_b.parse::<f64>()
+								if value_a.parse::<f64>().expect("не мат выражение") >= value_b.parse::<f64>()
 									.expect("не мат выражение") { true } 
-									else { false });
+									else { false };
 							},
 							7 => {
 								result = 
@@ -244,12 +242,12 @@ pub mod language{
 								if value_b == 0i32.to_string() { value_b = 1i32.to_string() } else { value_b = 0i32.to_string() }
 								match operation1 {
 									1 | 2 => { 
-										result = (if (value_a == 1i32.to_string()) && (value_b == 1i32.to_string()) { true } 
-											else { false });
+										result = if value_a == 1i32.to_string() && (value_b == 1i32.to_string()) { true } 
+											else { false };
 									},
 									3 | 4 => {
-										result = (if (value_a == 1i32.to_string()) || (value_b == 1i32.to_string()) { true } 
-											else { false });
+										result = if value_a == 1i32.to_string() || (value_b == 1i32.to_string()) { true } 
+											else { false };
 									},
 									5 => {
 										result = 
@@ -293,12 +291,12 @@ pub mod language{
 								}
 							},
 							_ => { 
-								result = (if (value_a == 1i32.to_string()) && (value_b == 1i32.to_string()) { true } 
-									else { false });
+								result = if (value_a == 1i32.to_string()) && (value_b == 1i32.to_string()) { true } 
+									else { false };
 								//panic!("some ops. operation: {}", operation);
 							},
-						}	
-						println!("result: {}", result);
+						}
+						//println!("result: {}", result);
 						return result;
 					},
 					'(' => {
@@ -313,7 +311,7 @@ pub mod language{
 					')' => {						
 						bracets_count -= 1;
 						if bracets_count == 0 {
-							println!("text_to_recurs: {}", text_to_recurs);
+							//println!("text_to_recurs: {}", text_to_recurs);
 							text_to_recurs.push('\n');							
 							if self.if_work(value_b.clone() + text_to_recurs.clone().as_str()) {
 								if value_a != "".to_string() && value_a != String::new() {
@@ -949,6 +947,7 @@ pub mod language{
 				}
 			} result_string
 		}
+		// конвертирует строку с переменными в строку
 		fn math_work(&self, text: String) -> String {
 			let text: String = Words::trim(text.clone());
 			//println!("text: {}", text); panic!("");
@@ -956,7 +955,7 @@ pub mod language{
 			let mut temp_string: String = String::new();
 			for ch in text.chars() {
 				match ch {
-					'+' | '-' | '/' | '*' | '(' | ')' => {
+					'+' | '-' | '/' | '*' | '(' | ')' | '&' | '|' | '!' | '=' | '<' | '>' => {
 						//fn is_digit(text: String) -> bool {
 						if Words::is_digit(temp_string.clone()) {
 							result_string += temp_string.clone().as_str();							
@@ -979,36 +978,27 @@ pub mod language{
 				result_string += temp_string.clone().as_str();
 			} result_string
 		}
-		fn func_work(&mut self, text: String, func_name: String, func_arg: String, func_text: String) {
+		fn func_work(&mut self/*, text: String,*/, func_name: String, func_arg: String, func_text: String) {
 			let temp_values = self.search_var(func_name.clone()).0;
+			// убрать текст			
+			// func name & func arg рабочие
+			//panic!("func_arg:\n {}\n\n************\nfunc_text:\n{}", func_arg, func_text);
 			let mut func_flag: bool = false;
 			let mut my_func_flag: bool = false;			
 			let mut args_name: Vec<&str> = func_arg.split(',').collect::<Vec<&str>>();
-			let _n_text: Vec<&str> = text.split('\n').collect::<Vec<&str>>();
-			for i in 0.._n_text.len() {		
-				if my_func_flag && _n_text[i].trim() != "end_func" {
-					if _n_text[i].clone().split('(').collect::<Vec<&str>>().len() > 1 {
-						let txt: String = func_text.clone() + _n_text[i].clone() + "\n";
-						self.start_(txt);
-					} else {
-						self.start_(_n_text[i].to_string() + "\n");
-					}
-					continue;
-				} else if my_func_flag && _n_text[i].trim() == "end_func" {
-					//fn remove_vars(&mut self, vars_name: String) {
-					for func_var in args_name {
-						self.remove_vars(func_var.to_string());
-					}
-					return;
-				}
+			let _n_text: Vec<&str> = func_text.split('\n').collect::<Vec<&str>>(); // не работает
+			// вначале мы ищем фунцию по имени, затем сеём аргумент, клонируем текст и запусаем
+			let mut i: usize = 0;
+			for _ in 0.._n_text.len() {	
 				let _s_text: Vec<&str> = _n_text[i].split(' ').collect::<Vec<&str>>();
-				for j in 0.._s_text.len() {
-					if _s_text[j] == "func" {
+				func_flag = false;
+				for j in 0.._s_text.len() {					
+					if _s_text[j] == "func" { 
 						func_flag = true; 
 						continue;
 					}
 					if func_flag {
-						if _s_text[j].split('(').collect::<Vec<&str>>()[0] == func_name.as_str() {							
+						if _s_text[j].split('(').collect::<Vec<&str>>()[0] == func_name.as_str() {
 							my_func_flag = true;
 							let mut args_value: Vec<String> = Vec::new();
 							if args_name.len() > 0 {
@@ -1024,14 +1014,33 @@ pub mod language{
 							}
 							break;
 						} else {
-							func_flag = false; break;
+							//func_flag = false; break;
 						}
 					}
-				}				
+				}
+				i += 1;
+				if my_func_flag { break; }				
 			}
-			panic!("function is not found");
+			if !my_func_flag {
+				panic!("function '{}' is not found", func_name);
+			}
+			let mut text: String = String::new();
+			text.push('\n');
+			for j in i.._n_text.len() {
+				if _n_text[j].trim() != "end_func" {
+					text += _n_text[j].clone();
+					text.push('\n');
+				} else {
+					break;
+				}
+			}
+			self.start_(func_text.clone()+text.as_str());
+			for name_ in args_name {
+				self.remove_vars(name_.to_string());
+			}
+			self.remove_vars(func_name.clone());
 		}
-
+		#[warn(unreachable_code)]
 		pub fn start_(&mut self, text: String) -> u8 { // возвращаем ошибку
 			 let mut temp_values: String = String::new();			//	ВРЕМЕННЫЕ ПЕРЕМЕННЫЕ
 			 let mut temp_name: String = String::new();		        //	...
@@ -1040,11 +1049,13 @@ pub mod language{
 			 let mut last_op: [usize; 3] = [0; 3]; // храним три последних действия
 			 // ----------------------------------------------
 			 let mut if_count: usize = 0;
+			 let mut if_result: bool = false; // ответ на условие
+			 let mut struct_flag: bool = false; // это структура а не условие
 			 let mut function_inactive_flag: bool = false;
-			 for ch in text.chars() {
+			 for ch in text.chars() {				
 				if ch == ' ' || ch == '\t' {
 					if function_inactive_flag {
-						if temp_values.trim() != "end_func" {
+						if temp_values.trim() != "end_func" {							
 							func_text += temp_values.clone().as_str();
 							func_text.push(' ');
 							temp_values = String::new();
@@ -1075,11 +1086,33 @@ pub mod language{
 							temp_buffer = String::new();
 						},
 						"if" => {
-							last_op[0] = 2;
+							if if_count == 0 { 
+								last_op[0] = 2;
+							}
 							if_count += 1;
 							temp_values = String::new();
 							temp_name = String::new();
 							temp_buffer = String::new();
+						},
+						"end" => {
+							//println!("if_count: {}", if_count);
+							if if_count != 0 {
+								if_count -= 1; 
+								last_op[0] = 2; //panic!("if_count: {}", if_count);
+								temp_values = String::new();
+								temp_name = String::new();
+								temp_buffer = String::new();
+								continue;
+							}
+							if if_count == 0 && !struct_flag {
+								//panic!("if_result: {}", if_result);
+								if_result = false;
+								temp_values = String::new();
+								temp_name = String::new();
+								temp_buffer = String::new();
+								last_op = [0; 3];
+								continue;
+							}
 						},
 						//------------------
 						"func" => {
@@ -1092,8 +1125,12 @@ pub mod language{
 							temp_name = String::new();
 							temp_buffer = String::new();							
 						},
-						"end_func" => {
+						"break" => {
+							last_op[0] = 18;
 							//panic!("");
+						},
+						"prt_stact" => {
+							self.println();
 						},
 						//------------------
 						_ => {
@@ -1101,6 +1138,10 @@ pub mod language{
 						},
 					}
 				} else if ch == '\n' {
+					//self.println(); 
+					//println!("temp_values: {:?}", temp_values); println!("temp_name: {:?}", temp_name); println!("last_op: {:?}", last_op);
+					//println!("if_count: {:?}", if_count); println!("if_result: {:?}", if_result);
+					//println!("-------------------------------------------");
 					//-------------------------------------------
 					if function_inactive_flag {
 						if temp_values.trim() != "end_func" {
@@ -1124,6 +1165,28 @@ pub mod language{
 							last_op = [0; 3];
 							continue;							
 						}						
+					}
+					if (!if_result) && (if_count > 0) && last_op[0] != 2 {
+						match Words::trim(temp_values.clone()).as_str() {
+							"end" => {
+								if if_count > 0 {
+									if_count -= 1; 
+									last_op[0] = 2;
+								}
+								if if_count == 0 && !struct_flag {
+									//panic!("if_result: {}", if_result);
+									if_result = false;
+								}
+							},
+							_ => {
+								//panic!("temp_values: {}", temp_values);
+							},
+						}
+						temp_values = String::new();
+						temp_name = String::new();
+						temp_buffer = String::new();
+						last_op = [0; 3];
+						continue;
 					}
 					//--------------------------------------
 					if last_op[1] == 4 {
@@ -1196,24 +1259,54 @@ pub mod language{
 							temp_buffer = temp_values.trim().split('(').collect::<Vec<&str>>()[1]
 											.split(')').collect::<Vec<&str>>()[0].to_string();
 							//println!("text: {:?}", text);
-							self.func_work(text.clone(), temp_name.clone(), temp_buffer.clone(), func_text.clone());
+							self.func_work(/*text.clone(),*/ temp_name.clone(), temp_buffer.clone(), func_text.clone());
 							temp_values = String::new();
 							temp_name = String::new();
 							temp_buffer = String::new();
 							last_op = [0; 3];
 							continue;
-						}						
+						}
+						match Words::trim(temp_values.clone()).as_str() {
+							"end" => {
+								temp_values = String::new();
+								temp_name = String::new();
+								temp_buffer = String::new();
+								last_op = [0; 3];
+								continue;		
+							},
+							"break" => {
+								return 0;
+							},
+							_ => {
+								//panic!("temp_values: {}", temp_values);
+							},
+						}
+							
 					} else if last_op[0] == 2 {
-						self.println(); println!("temp_values: {:?}", temp_values); println!("temp_name: {:?}", temp_name);
-						self.if_work(temp_values.clone()+"\n");
-						panic!("");
-					}//self.println(); println!("temp_values: {:?}", temp_values); println!("temp_name: {:?}", temp_name);
+						//println!("temp_values: {}", temp_values.clone()+"\n");
+						temp_values = self.math_work(temp_values.clone());
+						// конвертирует строку с переменными в строку
+						//fn math_work(&self, text: String) -> String {
+						if_result = self.if_work(temp_values.clone()+"\n");
+						if if_result {
+							if_count -= 1;
+						}
+						//println!("if_result: {}", if_result);
+						temp_values = String::new();
+						temp_name = String::new();
+						temp_buffer = String::new();
+						last_op = [0; 3];
+					} else if last_op[0] == 18 {
+						//panic!("");
+						//println!("temp_values: {}", temp_values);
+						return 0;
+					}
 				} else if ch == '=' {
 					if last_op[0] == 1 {
 						last_op[1] = 1;
 						temp_name = temp_values.clone().trim().to_string();
 						temp_values = String::new();
-					} else if last_op[0] == 0 {
+					} else if last_op[0] == 0 && !function_inactive_flag{
 						let (value, type_, temp_) = self.search_var(temp_values.clone().trim().to_string());
 						if temp_ { 
 							last_op[0] = 1; // нашли переменную
@@ -1222,6 +1315,8 @@ pub mod language{
 						}
 						temp_values = String::new();
 					} else if last_op[0] == 2 {
+						temp_values.push(ch);
+					} else { 
 						temp_values.push(ch);
 					}
 				} else {

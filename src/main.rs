@@ -5,10 +5,16 @@ fn main() {
     let mut language: language::Words = language::create();
     language.start_("
     func say_hello(void)
-        print void        
+        print other
+        other = other + 1
+        if other < 17
+            print \"bug\"                          
+            say_hello(other)
+        end        
     end_func
 
 object other = \"Hello, World from say_hello!\"
+other = 10
 say_hello(other)
 object other2 = 4
 other = 2 + (2*other2)
@@ -16,8 +22,18 @@ print other
 other2 = \"Hello, World from other2!\"
 print other2
 
-if (1 == !0) & 0
-    print other
+if 1 & 1
+    print \"if ответил true!\"
+    if 1 & 1
+        print \"второй if ответил true\"
+        if 1 & 1
+            print \"третий if ответил true\"
+        end 
+        print \"конец третьего ифа\"    
+    end
+    print \"конец второго ифа\"
 end
+print \"конец ифа\"
+prt_stact 
 ".to_string());
 }

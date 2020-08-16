@@ -13,7 +13,8 @@ pub mod language{
 	use std::ptr;
 	use std::ffi::CStr;
 	use std::io;
-
+	use std::str::FromStr;
+	
 	#[link(name = "math")]
 	extern {
 		fn eval(text: *const libc::c_char)->f32;
@@ -1229,7 +1230,12 @@ pub mod language{
 							self.set_value(temp_name.clone(), temp_values.clone());
 						} else {
 							// матан
-							let r: String = self.math_work(temp_values.clone());		
+							let r: String = self.math_work(temp_values.clone());
+							let mut _temp_var: Vec<char> = Vec::new();
+							for ch in r.chars() {
+								_temp_var.push(ch.clone());
+							}
+							let mut result: f32 = Words::eval(_temp_var);/*
 							let a: &str = r.as_str();
 							let prompt = match CString::new(a){
 								Ok(A) => { A },
@@ -1240,7 +1246,7 @@ pub mod language{
 							let mut result: f32 = 0.0;
 							unsafe {
 								result = eval(rl_prompt);
-							}
+							}*/
 							self.set_value(temp_name.clone(), result.to_string());
 						}
 						temp_values = String::new();
@@ -1325,6 +1331,119 @@ pub mod language{
 				
 			 }
 			 return 0;
-		}		
+		}
+		fn eval(str_: Vec<char>) -> f32 {
+			let mut i: usize = 0;
+			Words::expr(str_, &mut i)
+		}
+
+		fn plus_one(u: &mut usize) {
+			*u += 1;
+		}
+
+		fn number(ch_: Vec<char>, idx: &mut usize) -> f32 {
+			let mut result: f32 = 0.0;
+			//float result = 0.0;
+			let mut div: f32 = 10.0;
+			let mut sign: f32 = 1.0;
+			if ch_[*idx] == '-'{
+				sign = -1.0;
+				*idx += 1;
+			}
+			
+			while *idx < ch_.len() &&
+				match ch_[*idx] {
+					'0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => { true },
+					_ => { false }
+				}
+			{
+				result = result * 10.0 + (f32::from_str(&ch_[*idx].to_string()).expect("не удалось форматировать строку"));
+				
+				*idx += 1;
+			}
+			
+			if *idx < ch_.len() && (ch_[*idx] == '.'){
+				*idx += 1;        
+				while *idx < ch_.len() &&
+					match ch_[*idx] {
+						'0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => { true },
+						_ => { false }
+					} 
+				{
+					result = result + (f32::from_str(&ch_[*idx].to_string()).expect("не удалось форматировать строку")) / div;
+					div *= 10.0;
+					*idx += 1;
+				}
+			}
+			sign * result
+		}
+
+		fn expr(ch_: Vec<char>, idx: &mut usize) -> f32 {
+			let mut result: f32 = Words::term(ch_.clone(), idx);    
+			while *idx < ch_.len() && (ch_[*idx] == '+' || ch_[*idx] == '-') {
+				match ch_[*idx] {
+					'+' => {
+						*idx += 1;
+						result += Words::term(ch_.clone(), idx);
+					},
+					'-' => {
+						*idx += 1;    
+						result -= Words::term(ch_.clone(), idx);
+					},
+					_ => {},
+				} 
+			} result
+		}
+
+		fn term(ch_: Vec<char>, idx: &mut usize) -> f32 {
+			let mut result: f32 = Words::factor(ch_.clone(), idx);
+			let mut div: f32 = 0.0;
+		
+			while *idx < ch_.len() && (ch_[*idx] == '*' || ch_[*idx] == '/') {
+				match ch_[*idx] {
+					'*' => {
+						*idx += 1;
+						result *= Words::factor(ch_.clone(), idx);
+					},
+					'/' => {
+						*idx += 1;    
+						div = Words::factor(ch_.clone(), idx);    
+						if (div != 0.0) {
+							result /= div;
+						} else {
+							panic!("Division by zero!\n");                    
+						}
+					},
+					_ => {},
+				}
+			} result
+		}
+		
+		fn factor(ch_: Vec<char>, idx: &mut usize) -> f32 {
+			let mut result: f32 = 0.0;
+			let mut sign: f32 = 1.0;
+		
+			if (ch_[*idx] == '-') {
+				sign = -1.0;
+				*idx += 1;
+			}
+		
+			if (ch_[*idx] == '(') {
+				*idx += 1;
+				result = Words::expr(ch_.clone(), idx);
+		
+				if (ch_[*idx] != ')') {
+					panic!("Brackets unbalanced!\n");
+				}
+				*idx += 1;
+			} else { result = Words::number(ch_, idx); }
+			/*if (ch_[*idx] == '^')
+			{
+				*idx += 1;
+		
+				result = pow(result, factor(ch_, idx));
+			}*/
+			sign * result
+		}
 	}
 }

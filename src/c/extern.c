@@ -1,5 +1,5 @@
-#define _GNU_SOURCE
-#include <dlfcn.h>
+//#define _GNU_SOURCE
+#include "dlfcn.h"
 #include <stdio.h>
 #include <stdlib.h>
 //#include <dlfcn.h>
@@ -9,7 +9,7 @@ int mymain(int val){
     return 1;
 }
 // "./mylib.so", libf
-int linked(char * lib_path, char * func_name){
+int linked(char *lib_path, char *func_name){
     void *handle;
     int (*mylibf)(int val);
     if ((handle=dlopen (lib_path, RTLD_LAZY)) == NULL)
@@ -36,7 +36,7 @@ void *open(char * lib_path) {
     }
     return handle;
 }
-char* char_rf_func(void* handle, char * func_name, char* arg){
+char* char_rf_func(void* handle, char *func_name, char* arg){
     char* (*mylibf)(char* val);
     mylibf = dlsym(handle, func_name);
     if (dlerror() != NULL){
@@ -92,7 +92,7 @@ int lib_call(char* lib_path, char* func_name, char* arg_func){
     return (int)(*mylibf)(arg_func);
 }
 // строка сборки (флаги для gcc)
-// gcc -o main  -fPIC -ldl -rdynamic main.c; gcc -o mylib.so -fPIC -shared mylib.c
+// gcc -o main -fPIC -ldl -rdynamic main.c; gcc -o mylib.so -fPIC -shared mylib.c
 /*
 int main(){
     void *handle;

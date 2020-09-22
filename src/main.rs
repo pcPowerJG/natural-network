@@ -4,6 +4,22 @@ use ThGorgeForHabr::language;
 fn main() {
     let mut language: language::Words = language::create();
     language.start_("
+object i = 0
+loop    
+loop
+if i > 2
+break 
+end 
+i = i + 1
+print i
+prt_stact 
+end 
+i = i + 10
+if i > 20
+break
+end 
+end 
+"/*
     func say_hello(void)
         print other
         other = other + 1
@@ -12,7 +28,7 @@ fn main() {
             say_hello(other)
         end        
     end_func
-
+print i
 object other = \"Hello, World from say_hello!\"
 other = 10
 say_hello(other)
@@ -35,5 +51,5 @@ if 1 & 1
 end
 print \"конец ифа\"
 prt_stact 
-".to_string());
+"*/.to_string());
 }

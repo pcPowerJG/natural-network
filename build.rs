@@ -3,17 +3,18 @@ extern crate cc;
 fn main() {
     cc::Build::new()
         .file("./src/c/math.c")
-        .compile("libmath.a");
+        .compile("libmath.lib");
     cc::Build::new()
         .file("./src/c/extern.c")
-        .flag("-fPIC")
-        .flag("-ldl")
+        .flag("-ldlfcn")
+        //.flag("-fPIC")
+        //.flag("-ldl")
         .flag("-rdynamic")
-        .compile("libto_extern.a");
+        .compile("to_extern");
     cc::Build::new()
         .file("./src/c/open_file.c")
-        .flag("-fPIC")
-        .flag("-ldl")
+        //.flag("-fPIC")
+        //.flag("-ldlfcn")
         .flag("-rdynamic")
-        .compile("libopen_file.a");
+        .compile("open_file");
 }

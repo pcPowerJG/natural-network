@@ -1,13 +1,13 @@
 pub mod language{
     pub struct Words {
-    words: Vec<String>,     // сами ключевые слова		
-    object_buffer: Vec<(String, usize)>,              // наименования переменных 	// (name, type)
-    value_buffer: Vec<String>,                        // значения переменных
-    import_handle: Vec<*const libc::c_void>, // для подключения внешних библиотек
-    import_names: Vec<String>, // хранилище внешних библиотек
+		words: Vec<String>,     // сами ключевые слова		
+		object_buffer: Vec<(String, usize)>,              // наименования переменных 	// (name, type)
+		value_buffer: Vec<String>,                        // значения переменных
+		import_handle: Vec<*const libc::c_void>, // для подключения внешних библиотек
+		import_names: Vec<String>, // хранилище внешних библиотек
   }
 
-  extern crate libc;
+  	extern crate libc;
 	use libc::size_t;
 	use std::ffi::CString;
 	use std::ptr;
@@ -203,7 +203,7 @@ pub mod language{
 								result = if value_a == 1i32.to_string() || value_b == 1i32.to_string() { true } 
 									else { false };
 							},
-							5 => {
+							5 => {	
 								result = 
 								if value_a.as_str().to_string().parse::<f64>().expect("не мат выражение") > value_b.to_string().parse::<f64>()
 									.expect("не мат выражение") { true } 
@@ -1041,6 +1041,133 @@ pub mod language{
 			}
 			self.remove_vars(func_name.clone());
 		}
+		fn loop_work(&mut self, loop_text: String) {
+			let loop_text: String = "
+i = i + 1
+print i
+if i > 5
+	if i > 6
+		break
+	end
+end
+	loop
+		i = i + 100
+		print i
+		if i > 200
+			break
+			if i > 1500
+				print i
+			end
+		end
+	end
+end".to_string();
+// убить табуляцию для корректной работы:
+/*
+i = i + 1
+print i
+if i > 5
+if i > 6
+break
+end
+end
+loop
+i = i + 100
+print i
+if i > 200
+break
+if i > 1500
+print i
+end
+end
+end
+end
+*/
+			let mut scripts: Vec<&str> = loop_text.split('\n').collect::<Vec<&str>>();
+			scripts.insert(0, "loop");
+			//panic!("{:?}", scripts);
+
+			let mut index: usize = 0;
+			let mut loop_indexs: Vec<usize> = vec![0];
+			let mut ops: usize = 0;
+			while index != scripts.clone().len() {
+				let tmp: &str = scripts[index].clone().split(' ').collect::<Vec<&str>>()[0];
+				println!("{}", scripts[index].clone());
+				match tmp {
+					"loop" => {
+						loop_indexs.push(index.clone());
+						index += 1;
+						continue;
+					},
+					"if" => {
+						println!("{}", scripts[index].clone().to_string());
+						let mut vars: String = String::new();
+						let tmp_ = scripts[index].clone().split(' ').collect::<Vec<&str>>();
+						//temp_values = self.math_work(temp_values.clone());
+						for i in 1..tmp_.len(){
+							vars += tmp_[i].clone();
+						}
+						if self.if_work(self.math_work(vars.clone())+"\n") {
+							// выполняем дальше
+							index += 1;
+							ops += 1;
+							continue;
+						} else {
+							// ищем end
+							index += 1;
+							println!("T: {}", scripts[index].clone());
+							let mut tmp = scripts[index].clone().trim();
+							let mut ops_t: usize = 0;
+							while tmp != "end" || ops_t != 0 {
+								if tmp.split(' ').collect::<Vec<&str>>()[0] == "if" {
+									ops_t += 1;								
+								} else if tmp == "end" {
+									ops_t -= 1;
+								}
+								tmp = scripts[index].clone().trim();
+								//println!("s: {}", scripts[index].clone());
+								index += 1;
+							}  //println!("{:?}", scripts);		
+							continue;					
+						}
+					},
+					"end" => {
+						if ops == 0 {
+							let last: usize = loop_indexs.len() - 1;
+							index = loop_indexs[last].clone();
+							//println!("^");
+						} else {
+							ops -= 1;
+						}
+					},
+					"break" => {
+						let last: usize = loop_indexs.clone().len() - 1;
+						if last != 0 {
+							//panic!("");
+							loop_indexs.remove(last);
+							let mut tmp = scripts[index].clone().trim();
+							let mut ops_t: usize = 0;
+							while tmp != "end" && ops_t != 0 {
+								if tmp.split(' ').collect::<Vec<&str>>()[0] == "if" {
+									ops_t += 1;								
+								} else if tmp == "end" {
+									ops_t -= 1;
+								}
+								tmp = scripts[index].clone().trim();
+								index += 1;
+								//println!("@");
+							} //panic!("");
+							//index += 1;
+						} else {
+							panic!("");
+						}
+					},
+					_ => {},
+				}
+				self.start_(scripts[index].clone().to_string()+"\n");
+				index += 1;
+			}
+			println!("endend: \n{}", loop_text.clone());
+		}
 		#[warn(unreachable_code)]
 		pub fn start_(&mut self, text: String) -> u8 { // возвращаем ошибку
 			 let mut temp_values: String = String::new();			//	ВРЕМЕННЫЕ ПЕРЕМЕННЫЕ
@@ -1050,11 +1177,19 @@ pub mod language{
 			 let mut last_op: [usize; 3] = [0; 3]; // храним три последних действия
 			 // ----------------------------------------------
 			 let mut if_count: usize = 0;
-			 let mut if_result: bool = false; // ответ на условие
+			 let mut if_result: bool = true; // ответ на условие
 			 let mut struct_flag: bool = false; // это структура а не условие
 			 let mut function_inactive_flag: bool = false;
+			 let mut loop_flag: bool = false;
+			 let mut index_loop: usize = 0;
 			 for ch in text.chars() {				
 				if ch == ' ' || ch == '\t' {
+					/*println!("temp_values: {:?}", temp_values); println!("temp_name: {:?}", temp_name); 
+						println!("last_op: {:?}", last_op); println!("func_text: {:?}", func_text);
+						println!("if_count: {:?}", if_count); println!("if_result: {:?}", if_result);
+						println!("index_loop: {:?}", index_loop);
+						println!("loop_flag: {:?}", loop_flag); println!("function_inactive_flag: {:?}", function_inactive_flag);
+					println!("###########################################");*/
 					if function_inactive_flag {
 						if temp_values.trim() != "end_func" {							
 							func_text += temp_values.clone().as_str();
@@ -1073,6 +1208,41 @@ pub mod language{
 							last_op = [0; 3];
 							continue;							
 						}						
+					}
+					if loop_flag {
+						let tmp = temp_values.trim();
+						if tmp != "end" {													
+							func_text += temp_values.clone().as_str();
+							func_text.push(' ');
+						} 
+						if tmp == "loop" { 
+							index_loop += 1;
+						} else if tmp == "if" { 
+							//panic!("");
+							index_loop += 1;
+						} else if tmp == "end" {
+							if index_loop != 0 {
+								index_loop -= 1;
+								func_text += temp_values.clone().as_str();
+								func_text.push(' ');
+								temp_values = String::new();
+								last_op = [0; 3];
+								continue;
+							} else {
+								//panic!("");
+								self.loop_work(func_text);
+								func_text = String::new();
+								loop_flag = false;
+								temp_values = String::new();
+								temp_name = String::new();
+								temp_buffer = String::new();
+								last_op = [0; 3];
+							}	
+						}
+						temp_values = String::new();
+						temp_name = String::new();
+						temp_buffer = String::new();
+						last_op = [0; 3];
 					}
 					match temp_values.trim() {
 						"print" => { 
@@ -1126,8 +1296,24 @@ pub mod language{
 							temp_name = String::new();
 							temp_buffer = String::new();							
 						},
+						"loop" => {
+							if index_loop == 0 {
+								last_op[0] = 15;
+								loop_flag = true;
+								index_loop += 1; 
+								temp_values = String::new();
+							} else {
+								func_text += temp_values.clone().as_str();
+								func_text.push(' ');
+							}
+						},
 						"break" => {
-							last_op[0] = 18;
+							if if_result {
+								last_op[0] = 18;
+								func_text = String::new();
+								loop_flag = false;
+								return 15;
+							}
 							//panic!("");
 						},
 						"prt_stact" => {
@@ -1139,10 +1325,13 @@ pub mod language{
 						},
 					}
 				} else if ch == '\n' {
-					//self.println(); 
-					//println!("temp_values: {:?}", temp_values); println!("temp_name: {:?}", temp_name); println!("last_op: {:?}", last_op);
-					//println!("if_count: {:?}", if_count); println!("if_result: {:?}", if_result);
-					//println!("-------------------------------------------");
+					self.println(); 
+					println!("temp_values: {:?}", temp_values); println!("temp_name: {:?}", temp_name); 
+						println!("last_op: {:?}", last_op); println!("func_text: {:?}", func_text);
+						println!("if_count: {:?}", if_count); println!("if_result: {:?}", if_result);
+						println!("index_loop: {:?}", index_loop);
+						println!("loop_flag: {:?}", loop_flag); println!("function_inactive_flag: {:?}", function_inactive_flag);
+					println!("-------------------------------------------");
 					//-------------------------------------------
 					if function_inactive_flag {
 						if temp_values.trim() != "end_func" {
@@ -1167,6 +1356,36 @@ pub mod language{
 							continue;							
 						}						
 					}
+					if loop_flag {
+						if temp_values.trim() != "end" && if_count == 0 {													
+							func_text += temp_values.clone().as_str();
+							func_text.push('\n');
+							temp_values = String::new();
+							last_op = [0; 3];
+							continue;
+						} else if temp_values.trim() == "loop" || temp_values.trim() == "if" { 
+							index_loop += 1;
+						} else {
+							if index_loop != 0 && if_count == 0{
+								index_loop -= 1;
+								func_text += temp_values.clone().as_str();
+								func_text.push('\n');
+								temp_values = String::new();
+								last_op = [0; 3];
+								continue;
+							} else {
+								//panic!(func_text);
+								self.loop_work(func_text.clone());
+								func_text = String::new();
+								loop_flag = false;
+								temp_values = String::new();
+								temp_name = String::new();
+								temp_buffer = String::new();
+								last_op = [0; 3];
+								func_text = String::new();
+							}	
+						}
+					}
 					if (!if_result) && (if_count > 0) && last_op[0] != 2 {
 						match Words::trim(temp_values.clone()).as_str() {
 							"end" => {
@@ -1188,7 +1407,7 @@ pub mod language{
 						temp_buffer = String::new();
 						last_op = [0; 3];
 						continue;
-					}
+					}					
 					//--------------------------------------
 					if last_op[1] == 4 {
 						//search_var(&self, var_name: String) -> (String, usize, bool)
@@ -1305,14 +1524,38 @@ pub mod language{
 					} else if last_op[0] == 18 {
 						//panic!("");
 						//println!("temp_values: {}", temp_values);
-						return 0;
+						return 15;
+					} else if temp_values.trim() == "loop" {
+						if index_loop == 0 {
+							last_op[0] = 15;
+							loop_flag = true;
+							index_loop += 1; 
+							temp_values = String::new();
+						} else {
+							func_text += temp_values.clone().as_str();
+							func_text.push('\n');
+						}
+					} else {
+						match temp_values.trim(){
+							"break" => {
+								if if_result {
+									func_text = String::new();
+									loop_flag = false;
+									temp_values = String::new();
+									temp_name = String::new();
+									temp_buffer = String::new();
+									last_op = [0; 3];
+								}
+							},
+							_ => {},
+						}
 					}
-				} else if ch == '=' {
+				} else if ch == '=' {					
 					if last_op[0] == 1 {
 						last_op[1] = 1;
 						temp_name = temp_values.clone().trim().to_string();
 						temp_values = String::new();
-					} else if last_op[0] == 0 && !function_inactive_flag{
+					} else if last_op[0] == 0 && !function_inactive_flag && !loop_flag {
 						let (value, type_, temp_) = self.search_var(temp_values.clone().trim().to_string());
 						if temp_ { 
 							last_op[0] = 1; // нашли переменную

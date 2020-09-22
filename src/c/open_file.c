@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define int64_t long int
 
 
 size_t symbol_count(char* path) {
